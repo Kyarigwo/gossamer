@@ -1,0 +1,70 @@
+\documentclass{article}
+\author{Kyarigwo}
+
+\usepackage[margin=0.6in]{geometry}
+
+\usepackage{titlesec}
+\titlespacing{\subsection}{10pt}{*4}{*1.5}
+\titlespacing{\subsubsection}{20pt}{*2}{*1.5}
+
+\usepackage{enumitem}
+\setlist{left= 30pt}
+
+\usepackage{fontspec}
+% \setmainfont[Ligatures=TeX]{Arial}
+
+\title{Gossamer}
+\begin{document}
+
+\section{Assembly Functions}
+
+\subsection*{bye}
+
+Exits with given exit code.
+
+\subsubsection*{arguments}
+
+\begin{itemize}
+  \item \textbf{a0} The exit code
+\end{itemize}
+
+\subsubsection*{returns}
+
+\begin{itemize}
+  \item nothing, suprisingly.
+\end{itemize}
+
+\subsection*{alloc\_mem}
+Allocates \emph{PAGESIZE} pages of memory
+
+\subsubsection*{arguments}
+
+\begin{itemize}
+  \item \textbf{a0} number of pages to allocate
+\end{itemize}
+
+\subsubsection*{returns}
+
+\begin{itemize}
+  \item \textbf{a0} address of allocated area, or 0 for failure
+\end{itemize}
+
+
+\subsection*{print}
+writes bytes to standard out
+
+\subsubsection*{arguments}
+
+\begin{itemize}
+  \item \textbf{a0} base of string to write
+  \item \textbf{a1} bytes in string to write
+\end{itemize}
+
+\subsubsection*{returns}
+
+\begin{itemize}
+  \item nothing
+\end{itemize}
+
+
+\end{document}
