@@ -1,13 +1,24 @@
+/*
+
+Use a seperate data stack from the main system stack,
+as well as return stack.  Hence also keep these values
+in the high saved registers.
+
+s11 : instruction pointer
+s10 : data stack
+s9 : return stack
+s8 : local stack
+
+use lowest two temp locations for jump pointers
+t0 : first jump location
+t1 : second jump location
+
+*/
 
 
 .global _start
 
-# Jump register is t0 = x5
-# Indirect pointer is ra = x1
-# Data stack pointer is sp = x2
-# Return stack pointer is fp = s0 = x8
-# Instruction pointer s1 = x9
-
+// system sizes
 #define SIZE 4
 #define INPUT_BUFFER_MAX 80
 
@@ -26,6 +37,14 @@
 
 #include "macros.S"
 
+/*
+################################################################################
+#
+# Start up code
+#
+################################################################################
+*/
+
 .text
 _start:
 # magic to get loading of data to work
@@ -33,14 +52,17 @@ _start:
   .option norelax
   la gp, __global_pointer$
   .option pop
-  la a0, ex_word1
-  la a1, ex_word1_length
-  la a2, ex_word1
-  la a3, ex_word1_length
-  call string_eq
-  call print_bool
+  call parse_words
   call bye
 
+
+/*
+################################################################################
+#
+# Compiled functions
+#
+################################################################################
+*/
 
 /*
 
@@ -104,6 +126,23 @@ print:
 
 /*
 
+# print newline
+
+*/
+print_newline:
+  la a0, newline_msg
+  la a1, newline_msg_length
+  tail print
+
+.section .rodata
+
+newline_msg:
+  .ascii "\n"
+.equ newline_msg_length, .-newline_msg
+
+.text
+/*
+
 # refill-input - fills the input buffer from current input source
 
 arguments:
@@ -129,17 +168,18 @@ refill_input:
   ret
 
 .bss
+
 input_buffer: .space INPUT_BUFFER_MAX
+
 .text
 
 /*
 
-# split_eq_str - splits a string where c != target
+# split_on_ws_start - splits a string where white space begins
 
 arguments:
   a0: start of string
   a1: size of string
-  a2: target
 
 returns:
   a0: base of lower string
@@ -148,20 +188,20 @@ returns:
   a3: size of upper string
 
 locals:
-  a4: copy of target
+  a4: constant 32
   a5: top of input string
   a6: char at point
 
 */
-split_eq_str:
-  mv a4, a2
-  mv a2, a0
-  add a5, a0, a1
+split_on_ws_start:
+  mv a2, a0         # start split at input string
+  li a4, 32         # load constant
+  add a5, a0, a1    # a5 = top of input string
 1:
-  bge a2, a5, 2f
-  lb a6, 0(a2)
-  bne a4, a6, 2f
-  addi a2, a2, 1
+  bge a2, a5, 2f    # if split not < a5, exit
+  lb a6, 0(a2)      # get byte at a2
+  ble a6, a4, 2f    # if a6 <= 32 done
+  addi a2, a2, 1    # next a2
   j 1b
 2:
   sub a1, a2, a0
@@ -170,12 +210,11 @@ split_eq_str:
 
 /*
 
-# split_ne_str - splits a string where c == target
+# split_on_ws_end - splits a string where white space ends
 
 arguments:
   a0: start of string
   a1: size of string
-  a2: target
 
 returns:
   a0: base of lower string
@@ -184,19 +223,19 @@ returns:
   a3: size of upper string
 
 locals:
-  a4: copy of target
+  a4: const value 32
   a5: top of input string
   a6: char at point
 
 */
-split_ne_str:
-  mv a4, a2
+split_on_ws_end:
   mv a2, a0
+  li a4, 32
   add a5, a0, a1
 1:
   bge a2, a5, 2f
   lb a6, 0(a2)
-  beq a4, a6, 2f
+  bgt a6, a4, 2f
   addi a2, a2, 1
   j 1b
 2:
@@ -220,14 +259,12 @@ returns:
 
 */
 parse_word:
-  push1 ra
-  li a2, 32
-  call split_eq_str
+  sys_push1 ra
+  call split_on_ws_end
   mv a0, a2
   mv a1, a3
-  li a2, 32
-  call split_ne_str
-  pop1 ra
+  call split_on_ws_start
+  sys_pop1 ra
   ret
 
 /*
@@ -274,19 +311,96 @@ returns:
 
 */
 parse_words:
-  push3 ra, s2, s3
+  sys_push4 ra, s0, s1, s2
+  sys_push1 s3
   call refill_input
 1:
   call parse_word
-  mv s2, a2
+  beqz a1, 2f         # If no word not found, exit
+  mv s0, a0           # Save word found
+  mv s1, a1
+  mv s2, a2           # Save remainder of line
   mv s3, a3
-  beqz a1, 2f
-  call print
-  mv a0, s2
+  call find_word      # lookup word
+  beqz a0, 3f
+  mv a0, s0           # restore word
+  mv a1, s1
+  call print          # print if found
+3:
+  mv a0, s2           # restore remainder
   mv a1, s3
+  j 1b                # parse next word
+2:
+  sys_pop1 s3
+  sys_pop4 ra, s0, s1, s2
+  ret
+
+/*
+
+# find_word - search wordlist for given word
+
+arguments:
+  a0: start of target word
+  a1: size of target word
+
+returns:
+  Success:
+    a0: start of found word
+    a1: size of found word
+  Failure:
+    a0: false (0)
+    a1: unused
+
+*/
+find_word:
+  sys_push4 ra, s2, s3, s4
+  mv s2, a0
+  mv s3, a1
+  la s4, start_wordlist
+1:
+  lw a0, 0(s4)
+  beqz a0, 2f
+  lw a1, (SIZE)(s4)
+  mv a2, s2
+  mv a3, s3
+  call string_eq
+  bnez a0, 3f
+  addi s4, s4, 2 * SIZE
+  j 1b
+3:
+  lw a0, 0(s4)
+  lw a1, (SIZE)(s4)
+  sys_pop4 ra, s2, s3, s4
+  ret
+2:
+  li a0, 0
+  sys_pop4 ra, s2, s3, s4
+  ret
+
+/*
+
+# print_wordlist - prints out all words in wordlist
+
+arguments:
+  none
+
+returns:
+  nothing
+
+*/
+print_wordlist:
+  sys_push2 ra, s2
+  la s2, start_wordlist
+1:
+  lw a0, 0(s2)
+  beqz a0, 2f
+  lw a1, (SIZE)(s2)
+  call print
+  call print_newline
+  addi s2, s2, 2 * SIZE
   j 1b
 2:
-  pop3 s3, s2, ra
+  sys_pop2 ra, s2
   ret
 
 /*
@@ -306,7 +420,7 @@ print_version:
   tail print
 
 
-.data
+.section .rodata
 version_msg:
   .ascii "Version 2.21\n"
 .equ version_msg_length, .-version_msg
@@ -333,14 +447,14 @@ returns:
 
 */
 print_bool:
-  push1 ra
+  sys_push1 ra
   beqz a0, 1f
   call print_true
   j 2f
 1:
   call print_false
 2:
-  pop1 ra
+  sys_pop1 ra
   ret
 
 /*
@@ -363,7 +477,8 @@ print_false:
   la a1, false_msg_length
   tail print
 
-.data
+.section .rodata
+
 true_msg:
   .ascii "true\n"
 .equ true_msg_length, .-true_msg
@@ -371,3 +486,23 @@ true_msg:
 false_msg:
   .ascii "false\n"
 .equ false_msg_length, .-false_msg
+
+/*
+################################################################################
+#
+# compiled wordlist
+#
+################################################################################
+*/
+
+.data 1
+
+start_wordlist:
+
+defheader gsr_bye, "bye"
+
+defheader gsr_print "print"
+
+.data 1
+end_wordlist:
+  .4byte 0
