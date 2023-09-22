@@ -18,8 +18,16 @@ t1 : second jump location
 
 .global _start
 
+#define IP s11
+#define DS s10
+#define RS s9
+#define LS s8
+
 // system sizes
 #define SIZE 4
+#define DATA_STACK_SIZE 1
+#define RETURN_STACK_SIZE 1
+#define LOCAL_STACK_SIZE 1
 #define INPUT_BUFFER_MAX 80
 
 // Sys call data
@@ -52,9 +60,111 @@ _start:
   .option norelax
   la gp, __global_pointer$
   .option pop
-  call parse_words
-  call bye
 
+# setup data stack
+  li a0, DATA_STACK_SIZE
+  call alloc_mem
+  li t0, PAGESIZE * DATA_STACK_SIZE
+  add DS, a0, t0
+  sw DS, data_stack_top, t0
+
+# setup return stack
+  li a0, RETURN_STACK_SIZE
+  call alloc_mem
+  li t0, PAGESIZE * RETURN_STACK_SIZE
+  add RS, a0, t0
+  sw RS, return_stack_top, t0
+
+# setup local stack
+  li a0, LOCAL_STACK_SIZE
+  call alloc_mem
+  li t0, PAGESIZE * LOCAL_STACK_SIZE
+  add LS, a0, t0
+  sw LS, local_stack_top, t0
+
+  la IP, program
+
+  la a0, codeword_two_words
+
+  call execute
+
+  call bye
+#  call parse_words
+#  call bye
+#  la IP, program
+#  j next
+
+.data
+program:
+  .word codeword_bye
+.text
+
+/*
+################################################################################
+#
+# VM start
+#
+################################################################################
+*/
+
+enter:
+  pushr1 IP
+  addi IP, t0, SIZE
+next:
+  lw t0, 0(IP)
+  lw t1, 0(t0)
+  addi IP, IP, SIZE
+  jr t1
+
+code_exit:
+  popr1 IP
+  j next
+
+.data
+.p2align 2
+
+execute_word:
+  .4byte 0
+  .4byte codeword_cont
+
+codeword_cont:
+  .4byte cont
+
+.text
+
+execute:
+  sys_push1 ra
+  sw a0, execute_word, t0
+  pushr1 IP
+  la IP, execute_word
+  j next
+
+cont:
+  popr1 IP
+  sys_pop1 ra
+  ret
+
+
+
+/*
+################################################################################
+#
+# System Variables
+#
+################################################################################
+*/
+.data
+
+data_stack_top:
+  .4byte 0
+
+return_stack_top:
+  .4byte 0
+
+local_stack_top:
+  .4byte 0
+
+.text
 
 /*
 ################################################################################
@@ -63,6 +173,7 @@ _start:
 #
 ################################################################################
 */
+
 
 /*
 
@@ -425,13 +536,6 @@ version_msg:
   .ascii "Version 2.21\n"
 .equ version_msg_length, .-version_msg
 
-ex_word1:
-  .ascii "xest_word2"
-.equ ex_word1_length, .-ex_word1
-
-ex_word2:
-  .ascii "test_word2"
-.equ ex_word2_length, .-ex_word2
 
 .text
 
@@ -499,10 +603,48 @@ false_msg:
 
 start_wordlist:
 
-defheader gsr_bye, "bye"
+defcodeword bye, "bye"
+  li a0, 0
+  call bye
+  j next
 
-defheader gsr_print "print"
+defcodeword print_version, "version"
+  call print_version
+  j next
+
+defcodeword print_hello_world, "print_hello_world"
+  la a0, hello_world_msg
+  la a1, hello_world_msg_length
+  call print
+  j next
+
+defcodeword print_goodbye_world, "print_goodbye_world"
+  la a0, goodbye_world_msg
+  la a1, goodbye_world_msg_length
+  call print
+  j next
+
+defword two_words, "two_words"
+  .4byte codeword_print_goodbye_world
+  .4byte codeword_print_hello_world
+  .4byte codeword_exit
+
+defheader exit, "exit"
+  .4byte code_exit
+
 
 .data 1
 end_wordlist:
   .4byte 0
+
+.section .rodata
+
+hello_world_msg:
+  .ascii "Hello world!\n"
+.equ hello_world_msg_length, .-hello_world_msg
+
+goodbye_world_msg:
+  .ascii "Goodbye world!\n"
+.equ goodbye_world_msg_length, .-goodbye_world_msg
+
+.text

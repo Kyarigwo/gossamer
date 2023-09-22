@@ -71,7 +71,23 @@ we reverse this with popn rega, regb, regc
 .endm
 
 
+/*
+################################################################################
+#
+# return stack - in s9
+#
+################################################################################
+*/
 
+.macro pushr1 reg0
+  addi RS, RS, -(1 * SIZE)
+  sw \reg0, (0 * SIZE)(RS)
+.endm
+
+.macro popr1 reg0
+  lw \reg0, (0 * SIZE)(RS)
+  addi RS, RS, (1 * SIZE)
+.endm
 
 /*
 ################################################################################
@@ -101,7 +117,7 @@ name_\label:
   .ascii "\name"
 end_name_\label:
   .p2align 2                  # Padding to start of code
-\label:                       # Execution pointer
+codeword_\label:                       # Execution pointer
 .endm
 
 /*
@@ -113,18 +129,6 @@ end_name_\label:
 .macro defword label, name
 defheader \label, \name
   .4byte enter               # Start of code
-.endm
-
-
-/*
-
-# Creates a variable
-
-*/
-
-.macro defvariable label, name
-defheader \label, \name
-  .4byte code_variable
 .endm
 
 /*

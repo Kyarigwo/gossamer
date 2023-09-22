@@ -1,3 +1,4 @@
 
-dashboard -style style_low  "1;34"
+tui enable
+layout regs
 target remote :1234
