@@ -84,15 +84,12 @@ _start:
 
   la IP, program
 
-  la a0, codeword_two_words
+  call parse_words
 
-  call execute
+#  la a0, codeword_two_words
+#  call execute
 
   call bye
-#  call parse_words
-#  call bye
-#  la IP, program
-#  j next
 
 .data
 program:
@@ -434,9 +431,8 @@ parse_words:
   mv s3, a3
   call find_word      # lookup word
   beqz a0, 3f
-  mv a0, s0           # restore word
-  mv a1, s1
-  call print          # print if found
+  call name_to_codeword # get codeword
+  call execute         # and run it!
 3:
   mv a0, s2           # restore remainder
   mv a1, s3
@@ -486,6 +482,29 @@ find_word:
 2:
   li a0, 0
   sys_pop4 ra, s2, s3, s4
+  ret
+
+/*
+
+# name_to_codeword - replaces a found name with its codeword
+
+arguments:
+  a0: start of found word
+  a1: size of found word
+
+returns:
+  a0: address of code word
+
+*/
+name_to_codeword:
+  # need to round to align?
+  mv t0, a1
+  srli a1, a1, 2
+  slli a1, a1, 2
+  beq t0, a1, 1f
+  addi a1, a1, 4
+1:
+  add a0, a0, a1
   ret
 
 /*

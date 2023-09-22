@@ -112,7 +112,8 @@ we reverse this with popn rega, regb, regc
 .data 1
   .4byte name_\label
   .4byte end_name_\label - name_\label
-.section .rodata
+.data
+  .p2align 2
 name_\label:
   .ascii "\name"
 end_name_\label:
