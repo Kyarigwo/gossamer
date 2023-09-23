@@ -87,7 +87,9 @@ _start:
 
 # run program
   la IP, program
+1:
   call parse_words
+  j 1b
   call bye
 
 .data
