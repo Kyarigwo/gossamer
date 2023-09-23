@@ -89,6 +89,25 @@ we reverse this with popn rega, regb, regc
   addi RS, RS, (1 * SIZE)
 .endm
 
+
+/*
+################################################################################
+#
+# data stack - in s10
+#
+################################################################################
+*/
+
+.macro push1 reg0
+  addi DS, DS, -(1 * SIZE)
+  sw \reg0, (0 * SIZE)(DS)
+.endm
+
+.macro pop1 reg0
+  lw \reg0, (0 * SIZE)(DS)
+  addi DS,  DS, (1 * SIZE)
+.endm
+
 /*
 ################################################################################
 #
@@ -147,3 +166,22 @@ defheader \label, \name
 code_\label:
 .endm
 
+/*
+################################################################################
+#
+# Helper macros
+#
+################################################################################
+*/
+
+/*
+
+# string_literal - stores a literal string in .rodata
+
+*/
+.macro string_literal label, value
+.section .rodata
+\label\()_msg:
+  .ascii "\value"
+.equ \label\()_msg_length, .-\label\()_msg
+.endm

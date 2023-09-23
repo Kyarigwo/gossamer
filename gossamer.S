@@ -30,6 +30,9 @@ t1 : second jump location
 #define LOCAL_STACK_SIZE 1
 #define INPUT_BUFFER_MAX 80
 
+#define DEFAULT_BASE 10
+#define NUMBER_FORMAT_BUFFER_SIZE 80
+
 // Sys call data
 #define SYS_MMAP 222
 #define SYS_EXIT 93
@@ -82,16 +85,13 @@ _start:
   add LS, a0, t0
   sw LS, local_stack_top, t0
 
+# run program
   la IP, program
-
   call parse_words
-
-#  la a0, codeword_two_words
-#  call execute
-
   call bye
 
 .data
+
 program:
   .word codeword_bye
 .text
@@ -141,7 +141,13 @@ cont:
   sys_pop1 ra
   ret
 
-
+/*
+################################################################################
+#
+# VM end
+#
+################################################################################
+*/
 
 /*
 ################################################################################
@@ -433,7 +439,14 @@ parse_words:
   beqz a0, 3f
   call name_to_codeword # get codeword
   call execute         # and run it!
-3:
+  j 4f
+3:                     # else
+  mv a0, s0
+  mv a1, s1
+  call word_to_number # see if it is a number
+  bltz a0, 4f # if t0 < t1 then target
+  push1 a0
+4:
   mv a0, s2           # restore remainder
   mv a1, s3
   j 1b                # parse next word
@@ -506,6 +519,160 @@ name_to_codeword:
 1:
   add a0, a0, a1
   ret
+
+/*
+
+# word_to_number - converts word to + number.  -1 if fail
+
+for the moment, only consider unsigned ints.  So -1 if anything else,
+including extra characters.
+
+arguments:
+  a0: start of string to convert
+  a1: size of found word
+
+returns:
+  a0: number converted, or -1 if it fails
+
+variables:
+  a0 : pointer to current character
+  a3 : working value
+  a4 : top of string
+  a5 : current character/digit
+  a6 : tempory value to compare
+*/
+word_to_number:
+  li a3, 0        # Intial value
+  li a6, 10
+  add a4, a0, a1  # top of string
+1:
+  bgeu a0, a4, 2f # while a0 < a4
+  lb a5, 0(a0)
+  addi a5, a5, -48  # convert char to decimal digit
+  bltz a5, 3f       # fail if < 0
+  bge a5, a6, 3f     # fail if >= 10
+  mul a3, a3, a6
+  add a3, a3, a5    # a3 = 10 * a3 + a5
+  addi a0, a0, 1
+  j 1b
+2:
+  mv a0, a3
+  ret
+3:
+  li a0, -1
+  ret
+
+/*
+
+# number_to_word - converts a number in a0 to a word
+
+arguments:
+  a0: input number
+
+returns:
+  a0: base of representation string
+  a1: size of representation string
+
+locals:
+  a0 : scratch register
+  s2 : working number as it decreases
+  s5 : location where we will push the next char
+  s4 : stores our base
+  s6 : flag if original number is -
+
+  # setup
+  s2 = a0
+  s5 = number_format_buffer_top
+  s4 = DEFAULT_BASE
+  s6 = 0
+
+  # set flag if number negative, and take abs
+  if ! s2 >= 0  # handle negative numbers by, if number is negative
+    s2 = -s2    # change sign
+    s6 = 1      # and set bit to indicate this
+
+
+do
+  a0 = s2 `mod` s4    # pull out lowest digit
+  s2 = s2 / s4        # and shift remainder down
+  a0 = digit_to_ascii a0  # change remainder to a letter digit
+  *s5 = a0                # store that byte in the output buffer
+  s5 --                   # move the output buffer down
+until s2 != 0
+
+  if s6 == true:      # add sign bit
+    *s5 = '-'
+    s5 --             # push digit to the output buffer
+  t0 = number_format_buffer_top
+  a1 = t0 - s5        # length = original-top - current bottom
+  s5++                # move bottom of buffer up by one
+  a0 = s5
+
+
+*/
+number_to_word:
+  sys_push4 ra, s2, s3, s4
+  sys_push2 s5, s6
+
+  # setup
+  mv s2, a0
+  la s5, number_format_buffer
+  li s4, DEFAULT_BASE
+  li s6, 0
+  # set sign bit, and take abs
+  bge s2, x0, 1f
+  neg s2, s2
+  li s6, 1
+  # do
+1:
+  rem  a0, s2, s4      #   a0 = s2 % s4
+  div  s2, s2, s4      #   s2 = s2 / s4
+  call digit_to_ascii  #   r = chr r
+
+  call push_char_format_buffer
+#  sb   a0, (s5)        #   *output = r
+#  addi s5, s5,-1       #   output--
+
+  bnez s2, 1b          # while n != 0
+  # until s2 == 0
+
+  beq s6, x0, 2f       # if sign bit set
+  li a0, 45            # load '- 'value
+  call push_char_format_buffer
+#  sb a0, (s5)
+#  addi s5, s5, -1
+2:
+  la t0, number_format_buffer
+  sub  a1, t0, s5      # a1 = original_output - output
+  addi s5, s5, 1       # output++
+  mv   a0, s5          # a0 = output
+
+  sys_pop2 s5, s6      # restore registers
+  sys_pop4 ra, s2, s3, s4
+  ret
+
+push_char_format_buffer:
+  sb a0, (s5)
+  addi s5, s5, -1
+  ret
+
+/*
+  given a digit, converts it to an ascii rep -- up to hex
+*/
+digit_to_ascii:
+  addi a0, a0, 48
+  li a1, 57
+  ble a0, a1, 1f
+  addi a0, a0, 7
+1:
+  ret
+
+.bss
+  .space NUMBER_FORMAT_BUFFER_SIZE
+number_format_buffer:
+  .space 1
+
+.text
 
 /*
 
@@ -643,6 +810,12 @@ defcodeword print_goodbye_world, "print_goodbye_world"
   call print
   j next
 
+defcodeword dot, "."
+  pop1 a0
+  call number_to_word
+  call print
+  j next
+
 defword two_words, "two_words"
   .4byte codeword_print_goodbye_world
   .4byte codeword_print_hello_world
@@ -662,8 +835,6 @@ hello_world_msg:
   .ascii "Hello world!\n"
 .equ hello_world_msg_length, .-hello_world_msg
 
-goodbye_world_msg:
-  .ascii "Goodbye world!\n"
-.equ goodbye_world_msg_length, .-goodbye_world_msg
+string_literal goodbye_world, "Goodbye World!\n"
 
 .text
