@@ -1,53 +1,8 @@
-/*
 
-Use a seperate data stack from the main system stack,
-as well as return stack.  Hence also keep these values
-in the high saved registers.
-
-s11 : instruction pointer
-s10 : data stack
-s9 : return stack
-s8 : local stack
-
-use lowest two temp locations for jump pointers
-t0 : first jump location
-t1 : second jump location
-
-*/
-
-
-.global _start
-
-#define IP s11
-#define DS s10
-#define RS s9
-#define LS s8
-
-// system sizes
-#define SIZE 4
-#define DATA_STACK_SIZE 1
-#define RETURN_STACK_SIZE 1
-#define LOCAL_STACK_SIZE 1
-#define INPUT_BUFFER_MAX 80
-
-#define DEFAULT_BASE 10
-#define NUMBER_FORMAT_BUFFER_SIZE 80
-
-// Sys call data
-#define SYS_MMAP 222
-#define SYS_EXIT 93
-#define SYS_WRITE 64
-#define SYS_READ 63
-
-// Data for mmap
-#define PAGESIZE 4096  // page size
-#define PROT_READ 0x1
-#define PROT_WRITE 0x2
-#define MAP_ANONYMOUS 0x20
-#define MAP_PRIVATE 0x02
-
+#include "common.S"
 #include "macros.S"
 
+.global _start
 /*
 ################################################################################
 #
@@ -85,17 +40,25 @@ _start:
   add LS, a0, t0
   sw LS, local_stack_top, t0
 
+# create data area
+  li a0, DATA_AREA_SIZE
+  call alloc_mem
+
+  sw a0, data_area_base, t0
+  sw a0, ptr_here, t0
+  sw a0,  ptr_new_word, t0
+  sw zero, ptr_latest, t0
+
+  call cold_start
+
+  call print_wordlist
 # run program
-  la IP, program
-1:
-  call parse_words
-  j 1b
+#  la IP, program
+#1:
+#  call parse_words
+#  j 1b
   call bye
 
-.data
-
-program:
-  .word codeword_bye
 .text
 
 /*
@@ -132,7 +95,7 @@ codeword_cont:
 .text
 
 execute:
-  sys_push1 ra
+  jal x5, sys_push4
   sw a0, execute_word, t0
   pushr1 IP
   la IP, execute_word
@@ -140,7 +103,7 @@ execute:
 
 cont:
   popr1 IP
-  sys_pop1 ra
+  jal x5, sys_pop4
   ret
 
 /*
@@ -158,7 +121,7 @@ cont:
 #
 ################################################################################
 */
-.data
+.bss
 
 data_stack_top:
   .4byte 0
@@ -167,6 +130,25 @@ return_stack_top:
   .4byte 0
 
 local_stack_top:
+  .4byte 0
+
+input_buffer:
+  .space INPUT_BUFFER_MAX
+
+  .space NUMBER_FORMAT_BUFFER_SIZE
+number_format_buffer:
+  .space 1
+
+data_area_base:
+  .4byte 0
+
+ptr_here:
+  .4byte 0
+
+ptr_latest:
+  .4byte 0
+
+ptr_new_word:
   .4byte 0
 
 .text
@@ -242,21 +224,29 @@ print:
 
 /*
 
-# print newline
+# print constants
 
 */
-print_newline:
-  la a0, newline_msg
-  la a1, newline_msg_length
-  tail print
 
-.section .rodata
+print_literal newline, "\n"
 
-newline_msg:
-  .ascii "\n"
-.equ newline_msg_length, .-newline_msg
+print_literal space, " "
 
-.text
+print_literal ok, "ok"
+
+print_literal question_mark, "?"
+
+print_literal version, "Version 1.0\n"
+
+print_literal goodbye_world, "Goodbye World!\n"
+
+print_literal hello_world, "Hello World!\n"
+
+print_literal true, "true\n"
+
+print_literal false, "false\n"
+
+
 /*
 
 # refill-input - fills the input buffer from current input source
@@ -269,6 +259,8 @@ returns:
   a1: current size of input buffer | unused failure
 
 */
+
+.text
 refill_input:
   li a0, 0                  # stdin
   la a1, input_buffer
@@ -283,11 +275,6 @@ refill_input:
   li a0, 0
   ret
 
-.bss
-
-input_buffer: .space INPUT_BUFFER_MAX
-
-.text
 
 /*
 
@@ -375,12 +362,12 @@ returns:
 
 */
 parse_word:
-  sys_push1 ra
+  jal x5, sys_push4
   call split_on_ws_end
   mv a0, a2
   mv a1, a3
   call split_on_ws_start
-  sys_pop1 ra
+  jal x5, sys_pop4
   ret
 
 /*
@@ -427,34 +414,44 @@ returns:
 
 */
 parse_words:
-  sys_push4 ra, s0, s1, s2
-  sys_push1 s3
+  jal x5, sys_push8
   call refill_input
+
 1:
   call parse_word
-  beqz a1, 2f         # If no word not found, exit
+  beqz a1, 5f         # If no word not found, exit good end
   mv s0, a0           # Save word found
   mv s1, a1
   mv s2, a2           # Save remainder of line
   mv s3, a3
+
   call find_word      # lookup word
-  beqz a0, 3f
+  beqz a0, 2f
   call name_to_codeword # get codeword
   call execute         # and run it!
-  j 4f
-3:                     # else
+  j 3f                 # loop bottom
+
+2:                     # else
   mv a0, s0
   mv a1, s1
   call word_to_number # see if it is a number
-  bltz a0, 4f # if t0 < t1 then target
+  bltz a0, 4f # if t0 < t1 then exit
   push1 a0
-4:
+
+3:
   mv a0, s2           # restore remainder
   mv a1, s3
   j 1b                # parse next word
-2:
-  sys_pop1 s3
-  sys_pop4 ra, s0, s1, s2
+
+4:
+  call print_question_mark # bad end
+  j 6f
+
+5:                    # good end
+  call print_ok
+6:
+  call print_newline
+  jal x5, sys_pop8
   ret
 
 /*
@@ -475,28 +472,28 @@ returns:
 
 */
 find_word:
-  sys_push4 ra, s2, s3, s4
+  jal x5, sys_push4
   mv s2, a0
   mv s3, a1
-  la s4, start_wordlist
+  lw s4, ptr_latest
 1:
-  lw a0, 0(s4)
-  beqz a0, 2f
-  lw a1, (SIZE)(s4)
+  beqz s4, 2f
+  lb a1, (2 * SIZE)(s4)
+  addi a0, s4, 2 * SIZE + 1
   mv a2, s2
   mv a3, s3
   call string_eq
   bnez a0, 3f
-  addi s4, s4, 2 * SIZE
+  lw s4, 0(s4)
   j 1b
 3:
-  lw a0, 0(s4)
-  lw a1, (SIZE)(s4)
-  sys_pop4 ra, s2, s3, s4
+  addi a0, s4, 2 * SIZE + 1
+  lb a1, (2 * SIZE)(s4)
+  jal x5, sys_pop4
   ret
 2:
   li a0, 0
-  sys_pop4 ra, s2, s3, s4
+  jal x5, sys_pop4
   ret
 
 /*
@@ -613,8 +610,7 @@ until s2 != 0
 
 */
 number_to_word:
-  sys_push4 ra, s2, s3, s4
-  sys_push2 s5, s6
+  jal x5,  sys_push8
 
   # setup
   mv s2, a0
@@ -649,8 +645,7 @@ number_to_word:
   addi s5, s5, 1       # output++
   mv   a0, s5          # a0 = output
 
-  sys_pop2 s5, s6      # restore registers
-  sys_pop4 ra, s2, s3, s4
+  jal x5, sys_pop8
   ret
 
 push_char_format_buffer:
@@ -669,12 +664,6 @@ digit_to_ascii:
 1:
   ret
 
-.bss
-  .space NUMBER_FORMAT_BUFFER_SIZE
-number_format_buffer:
-  .space 1
-
-.text
 
 /*
 
@@ -688,44 +677,20 @@ returns:
 
 */
 print_wordlist:
-  sys_push2 ra, s2
-  la s2, start_wordlist
+  jal x5, sys_push4
+  lw s0, ptr_latest
 1:
-  lw a0, 0(s2)
-  beqz a0, 2f
-  lw a1, (SIZE)(s2)
+  beqz s0, 2f
+  lb a1, (2* SIZE)(s0)
+  addi a0, s0, 2 * SIZE + 1
   call print
   call print_newline
-  addi s2, s2, 2 * SIZE
+  lw s0, 0(s0)
   j 1b
 2:
-  sys_pop2 ra, s2
+  jal x5, sys_pop4
   ret
 
-/*
-
-# print_version -- prints version
-
-arguments:
-  none
-
-returns:
-  none
-
-*/
-print_version:
-  la a0, version_msg
-  la a1, version_msg_length
-  tail print
-
-
-.section .rodata
-version_msg:
-  .ascii "Version 2.21\n"
-.equ version_msg_length, .-version_msg
-
-
-.text
 
 /*
 
@@ -739,45 +704,118 @@ returns:
 
 */
 print_bool:
-  sys_push1 ra
+  jal x5, sys_push4
   beqz a0, 1f
   call print_true
   j 2f
 1:
   call print_false
 2:
-  sys_pop1 ra
+  jal x5, sys_pop4
   ret
 
 /*
-
-# print_true - prints 'true'
-
+################################################################################
+#
+# Create new words
+#
+################################################################################
 */
-print_true:
-  la a0, true_msg
-  la a1, true_msg_length
-  tail print
 
 /*
 
-# print_false - prints false
+# Creates a new header from given string
+
+arguments:
+  a0: base of input string
+  a1: length of input string
+
+0:        [ latest   ]
+SIZE:     [ codeword ]
+2 * SIZE: [len][name ]
 
 */
-print_false:
-  la a0, false_msg
-  la a1, false_msg_length
-  tail print
 
-.section .rodata
+header:
 
-true_msg:
-  .ascii "true\n"
-.equ true_msg_length, .-true_msg
+  jal x5, sys_push4
 
-false_msg:
-  .ascii "false\n"
-.equ false_msg_length, .-false_msg
+  lw s0, ptr_here           # here
+  lw t0, ptr_latest         # latest
+
+  sw t0, 0(s0)              # here = latest
+
+  sw s0, ptr_new_word, t0   # ptr_new_word = here
+
+  sw zero, SIZE(s0)         # here + SIZE = zero
+  sb a1, (2*SIZE)(s0)       # here + 2 * SIZE = name.length
+
+  addi a2, s0, (2*SIZE + 1) # location to write name = here + 2 * SIZE + 1
+
+  call gmer_memcpy          # a0 = 1 past end of string
+  call align_4byte          # a0 to align on 4bytes
+
+  sw a0, SIZE(s0)
+  sw a0, ptr_here, t0       # here = a0
+
+  jal x5, sys_pop4
+
+  ret
+
+add_codeword:
+  lw t0, ptr_here
+  sw a0, 0(t0)
+# bump here
+  addi t0, t0, SIZE
+  sw t0, ptr_here, t1
+  ret
+
+end_word:
+  lw t0, ptr_new_word
+  sw t0, ptr_latest, t1
+  ret
+
+cold_start:
+  jal x5, sys_push4
+
+# bye
+  string_literal bye_str, "bye"
+  call header
+  la a0, gmer_bye
+  call add_codeword
+  call end_word
+
+# version
+  string_literal version_str, "version"
+  call header
+  la a0, gmer_version
+  call add_codeword
+  call end_word
+
+# print hello world
+  string_literal print_hello_str, "print_hello_world"
+  call header
+  la a0, gmer_print_hello_world
+  call add_codeword
+  call end_word
+
+# print goodbye world
+  string_literal print_goodbye_world_str, "print_goodbye_world"
+  call header
+  la a0, gmer_print_goodbye_world
+  call add_codeword
+  call end_word
+
+# .
+  string_literal dot_str,  "."
+  call header
+  la a0, gmer_dot
+  call add_codeword
+  call end_word
+
+
+  jal x5, sys_pop4
+  ret
 
 /*
 ################################################################################
@@ -787,56 +825,29 @@ false_msg:
 ################################################################################
 */
 
-.data 1
-
-start_wordlist:
-
-defcodeword bye, "bye"
+gmer_bye:
   li a0, 0
   call bye
   j next
 
-defcodeword print_version, "version"
+gmer_version:
   call print_version
   j next
 
-defcodeword print_hello_world, "print_hello_world"
-  la a0, hello_world_msg
-  la a1, hello_world_msg_length
-  call print
+gmer_print_hello_world:
+  call print_hello_world
   j next
 
-defcodeword print_goodbye_world, "print_goodbye_world"
-  la a0, goodbye_world_msg
-  la a1, goodbye_world_msg_length
-  call print
+
+gmer_print_goodbye_world:
+  call print_goodbye_world
   j next
 
-defcodeword dot, "."
+
+gmer_dot:
   pop1 a0
   call number_to_word
   call print
+  call print_space
   j next
 
-defword two_words, "two_words"
-  .4byte codeword_print_goodbye_world
-  .4byte codeword_print_hello_world
-  .4byte codeword_exit
-
-defheader exit, "exit"
-  .4byte code_exit
-
-
-.data 1
-end_wordlist:
-  .4byte 0
-
-.section .rodata
-
-hello_world_msg:
-  .ascii "Hello world!\n"
-.equ hello_world_msg_length, .-hello_world_msg
-
-string_literal goodbye_world, "Goodbye World!\n"
-
-.text

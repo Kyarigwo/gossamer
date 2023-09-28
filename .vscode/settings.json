@@ -1,0 +1,10 @@
+{
+  "makefile.launchConfigurations": [
+    {
+      "cwd": "/home/bruce/Documents/projects/risc-v/gossamer",
+      "binaryPath": "/home/bruce/Documents/projects/risc-v/gossamer/gossamer",
+      "binaryArgs": []
+    }
+  ],
+  "riscv-venus.variableFormat": "decimal"
+}

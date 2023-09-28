@@ -3,5 +3,83 @@ bye
 alloc_mem
 print
 refill_input
-print_version
-drop_while_eq
+split_on_ws_start
+split_on_ws_end
+parse_word
+string_eq
+parse_words
+find_word
+name_to_codeword
+word_to_number
+number_to_word
+print_wordlist
+print_bool
+
+header:
+
+.data 1
+  pointer to name
+  length of name
+.data
+  name
+
+if codeword
+
+.data
+  enter then rest of code
+
+pointer to name
+length of name
+name
+codeword
+...
+next name?
+
+link
+pointer to name
+length of name
+name
+codeword
+..
+
+1. Hard coded startup code looks like,
+
+.data 1
+  .4byte address of name
+  .4byte length of name
+.data
+  .p2align 2
+  .ascii "the name"
+  .p2align
+  .4byte  codeword?
+  = enter for an interpreted word, and
+  = .text for a non interpreted word.
+
+We want to move it into the data area in the format:
+  .4byte previous
+  .byte length  - say length is number of words that the
+                - are taken up by text?
+  .byte flags
+  .ascii text
+
+  [previous  ]
+  [0001][0000]
+  [exit      ]
+  [code_exit ]
+
+
+
+head of fountain abode:
+  Hei Fengxi - man, dark clothes
+Tianshuang Sect:
+  Bai Fengxi - woman, light clothes
+
+Hei Fengxi is indifferent to anyone else, but will always answer
+a challenge from Bai Fengxi
+
+Dadong empire
+  Crown prince, Jing Yan
+  Emperor Chunxi
+
+
+

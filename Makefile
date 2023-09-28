@@ -5,8 +5,9 @@ DEBUG_FLAGS = -ggdb
 
 all: gossamer
 
-gossamer: gossamer.S macros.S
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -o  gossamer gossamer.S
+gossamer: gossamer.S macros.S utilities.S
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -o  gossamer gossamer.S utilities.S
 
 clean:
 	rm gossamer
+	rm *.aux
