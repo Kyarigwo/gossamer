@@ -1,14 +1,21 @@
 export PATH := $(PATH):/home/bruce/.local/riscv/toolchain/bin
+
+
+SRC_DIR = src
+BIN_DIR = .
+EXEC = $(BIN_DIR)/gossamer
+
 CC = riscv64-unknown-elf-gcc
 CFLAGS = -nostdlib -mabi=ilp32 -march=rv32imac
 DEBUG_FLAGS = -ggdb
 
-OBJS = gossamer.S macros.S utilities.S words.S
+SRC = $(wildcard $(SRC_DIR)/*.S)  # gossamer.S macros.S utilities.S words.S
 
-all: gossamer
+.PHONY: all
+all: $(EXE) # gossamer
 
-gossamer: $(OBJS)
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(OBJS) -o gossamer
+$(EXE): $(SRC)
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRC) -o gossamer
 
 .PHONY: clean
 clean:

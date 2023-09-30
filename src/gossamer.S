@@ -808,7 +808,7 @@ print_wordlist:
   mv a0, s0
   call wt_to_name
   call print
-  call print_newline
+  call print_space
   lw s0, 0(s0)
   j 1b
 2:
@@ -862,14 +862,14 @@ cold_start:
   call end_word
 
 # print hello world
-  string_literal print_hello_str, "print_hello_world"
+  string_literal print_hello_str, "print-hello-world"
   call header
   la a0, gmer_print_hello_world
   call add_codeword
   call end_word
 
 # print goodbye world
-  string_literal print_goodbye_world_str, "print_goodbye_world"
+  string_literal print_goodbye_world_str, "print-goodbye-world"
   call header
   la a0, gmer_print_goodbye_world
   call add_codeword
