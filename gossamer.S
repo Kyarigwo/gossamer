@@ -239,6 +239,8 @@ print_literal space, " "
 
 print_literal ok, "ok"
 
+print_literal compiled, "compiled"
+
 print_literal question_mark, "?"
 
 print_literal version, "Version 1.0\n"
@@ -457,7 +459,13 @@ parse_words:
   ret
 
 4:                    # good end
+  lw t0, immediate_mode
+  beqz t0, 5f
   call print_ok
+  j 6f
+5:
+  call print_compiled
+6:
   call print_newline
   jal x5, sys_pop8
   ret
@@ -704,7 +712,7 @@ number_to_word:
 2:
   la t0, number_format_buffer
   sub  a1, t0, s5      # a1 = original_output - output
-  addi s5, s5, 1       # output++
+  addi s5, s5, 1       # output++i
   mv   a0, s5          # a0 = output
 
   jal x5, sys_pop8
@@ -827,6 +835,21 @@ cold_start:
   call add_codeword
   call end_word
 
+# :
+  string_literal colon, ":"
+  call header
+  la a0, gmer_colon
+  call add_codeword
+  call end_word
+
+# ;
+  string_literal semicolon, ";"
+    call header
+    la a0, gmer_semicolon
+    call add_codeword
+    call end_word
+    lw a0, ptr_latest
+    call set_immediate
 
   jal x5, sys_pop4
   ret
@@ -878,3 +901,18 @@ gmer_lit:
   addi IP, IP, SIZE
   j next
 
+gmer_colon:
+  call parse_word
+  call header
+  la a0, enter
+  call add_codeword
+  sw zero, immediate_mode, t0
+  j next
+
+gmer_semicolon:
+  la a0, code_exit
+  call add_codeword
+  call end_word
+  li t0, 1
+  sw t0, immediate_mode, t1
+  j next
