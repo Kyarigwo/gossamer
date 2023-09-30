@@ -1,7 +1,7 @@
 #include "common.S"
 
-.global header, end_word, add_codeword
-.global wt_to_name, wt_to_xt
+.global header, end_word, add_codeword, set_immediate
+.global wt_to_name, wt_to_xt, wt_immediate
 
 /*
 ################################################################################
@@ -36,7 +36,7 @@ returns:
   nothing
 
 0:        [ latest       ]
-SIZE:     [ codeword ptr ]
+SIZE:     [ codeword ptr ] - lowest two bits are used as flags
 2 * SIZE: [len][name     ]
 n * SIZE: [ codeword     ]
 
@@ -96,6 +96,23 @@ end_word:
   ret
 
 /*
+
+# set_immediate -- updates the word in a0 to be immediate
+
+arguments:
+  a0: word token
+
+returns:
+  nothing
+
+*/
+set_immediate:
+  lw t0, SIZE(a0)
+  ori t0, t0, 1
+  sw t0, SIZE(a0)
+  ret
+
+/*
 ################################################################################
 #
 # extract information from a word token
@@ -133,4 +150,22 @@ returns:
 */
 wt_to_xt:
   lw a0, SIZE(a0)
+  andi a0, a0, -4   # -4 = 111111100 -- clears flag bits
   ret
+
+/*
+
+# wt_immediate -- is the immediate flag set?
+
+arguments:
+  a0: word token
+
+returns:
+  a0: 0 if immediate flag is not set.
+
+*/
+wt_immediate:
+  lw a0, SIZE(a0)
+  andi a0, a0, 1   # gets bit 0
+  ret
+

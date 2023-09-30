@@ -35,9 +35,8 @@
   \hline
   \end{tabular}
 
-  \textbf{Arithmetic}
 
-  Addition and subtraction
+  \textbf{Addition and subtraction}
 
   \begin{tabular}{|c|c|c|c|}
     \hline
@@ -50,7 +49,7 @@
     \hline
   \end{tabular}
 
-  Multiplication and division
+  \textbf{Multiplication and division}
 
   \begin{tabular}{|c|c|c|c|}
     \hline
@@ -85,6 +84,7 @@
     load word (unsigned)  & lwu rd, immed(r1) & lwu x4, 1234(x9) & x4 =
     Mem[x9+1234] \\
     *load word & lw rd, immed & lw x4, var & x4 = mem[var] \\
+    *load immediate                   & li rd, immed       & li x4, 123        & x4 = 123 \\
     \hline
   \end{tabular}
 
@@ -112,8 +112,6 @@
     *nop                              & nop                & nop               & does nothing    \\
     *move register to register        & mv rd, r1          & mv x4, x9         & x4 = x9         \\
     load upper immediate             & lui rd, immed      & lui x4 0x12345    & x4 = 0x12345000
-    \\
-    *load immediate                   & li rd, immed       & li x4, 123        & x4 = 123
     \\
     add upper immediate to pc        & auipc rd, immed    & auipc x4, 0x12345 & x4 = pc +
     (0x12345$<<$12)                                                                             \\

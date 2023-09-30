@@ -59,8 +59,6 @@ _start:
 
   call bye
 
-.text
-
 /*
 ################################################################################
 #
@@ -150,6 +148,11 @@ ptr_latest:
 
 ptr_new_word:
   .4byte 0
+
+.data
+
+immediate_mode:
+  .4byte 1
 
 .text
 
@@ -421,42 +424,122 @@ parse_words:
 
 1:
   call parse_word
-  beqz a1, 5f         # If no word not found, exit good end
+  beqz a1, 4f           # If no word found, end of  line
 
-  mv s0, a0           # Save word found
+  mv s0, a0             # Save word found
   mv s1, a1
 
-  mv s2, a2           # Save remainder of line
+  mv s2, a2             # Save remainder of line
   mv s3, a3
 
-  call find_word      # lookup word
+  call handle_word
   beqz a0, 2f
-  call wt_to_xt        # get codeword
-  call execute         # and run it!
-  j 3f                 # loop bottom
 
-2:                     # else
+  mv a0, s2             # restore remainder
+  mv a1, s3
+
+  j 1b                 # loop bottom
+
+2:                     # else, if word not in dictionary
   mv a0, s0
   mv a1, s1
-  call word_to_number # see if it is a number
-  bltz a0, 4f         # if t0 < t1 then exit
-  push1 a0
+  call handle_number
+  beqz a0, 3f         # if t0 < t1 then error exit
 
-3:
   mv a0, s2           # restore remainder
   mv a1, s3
   j 1b                # parse next word
 
-4:
+3:
   call print_question_mark # bad end
-  j 6f
-
-
-5:                    # good end
-  call print_ok
-6:
   call print_newline
   jal x5, sys_pop8
+  ret
+
+4:                    # good end
+  call print_ok
+  call print_newline
+  jal x5, sys_pop8
+  ret
+
+/*
+
+# Handle word - handles a word that is in the dictionary
+
+arguments:
+  a0: base of input string
+  a1: length of input string
+
+returns:
+  a0: true if handled, otherwise false
+
+*/
+handle_word:
+  jal x5, sys_push4
+  call find_word
+  beqz a0, 3f
+
+  mv s0, a0
+
+  lw t0, immediate_mode
+  call wt_immediate
+  or t0, t0, a0
+
+  mv a0, s0
+  call wt_to_xt
+
+  beqz t0, 1f
+  call execute
+  j 2f
+1:
+  lw t0, ptr_here
+  sw a0, 0(t0)
+  addi t0, t0, SIZE
+  sw t0, ptr_here, t1
+2:
+  li a0, 1
+  jal x5, sys_pop4
+  ret
+3:
+  li a0, 0
+  jal x5, sys_pop4
+  ret
+
+/*
+
+# handle_number -- handles a potential number
+
+arguments:
+  a0: base of input string
+  a1: length of input string
+
+returns:
+  a0: true if handled, otherwise false
+
+*/
+handle_number:
+  jal x5, sys_push4
+  call word_to_number
+  bltz a0, 2f
+  lw t0, immediate_mode
+  beqz t0, 1f
+  push1 a0
+  j 2f
+1:
+  lw t0, ptr_here
+  la t1, lit_codeword
+  sw t1, 0(t0)
+  sw a0, SIZE(t0)
+  addi t0, t0, 2*SIZE
+  sw t0, ptr_here, t1
+2:
+  li a0, 1
+  jal x5, sys_pop4
+  ret
+
+3:
+  li a0, 0
+  jal x5, sys_pop4
   ret
 
 /*
@@ -496,29 +579,6 @@ find_word:
 2:
   li a0, 0
   jal x5, sys_pop8
-  ret
-
-/*
-
-# name_to_codeword - replaces a found name with its codeword
-
-arguments:
-  a0: start of found word
-  a1: size of found word
-
-returns:
-  a0: address of code word
-
-*/
-name_to_codeword:
-  # need to round to align?
-  mv t0, a1
-  srli a1, a1, 2
-  slli a1, a1, 2
-  beq t0, a1, 1f
-  addi a1, a1, 4
-1:
-  add a0, a0, a1
   ret
 
 /*
@@ -760,10 +820,24 @@ cold_start:
   call add_codeword
   call end_word
 
+# lit
+  string_literal lit, "lit"
+  call header
+  la a0, gmer_lit
+  call add_codeword
+  call end_word
+
 
   jal x5, sys_pop4
   ret
 
+
+.data
+
+lit_codeword:
+  .4byte gmer_lit
+
+.text
 /*
 ################################################################################
 #
@@ -796,5 +870,11 @@ gmer_dot:
   call number_to_word
   call print
   call print_space
+  j next
+
+gmer_lit:
+  lw t0, 0(IP)
+  push1 t0
+  addi IP, IP, SIZE
   j next
 
