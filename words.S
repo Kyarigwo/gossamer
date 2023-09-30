@@ -1,6 +1,7 @@
 #include "common.S"
 
 .global header, end_word, add_codeword
+.global wt_to_name, wt_to_xt
 
 /*
 ################################################################################
@@ -8,19 +9,36 @@
 # Create new words
 #
 ################################################################################
+
+words are stored in a linked list, formated as below, each
+line being 4 bytes long
+
+0:        [ latest       ]
+SIZE:     [ codeword ptr ]
+2 * SIZE: [len][name     ]
+n * SIZE: [ codeword     ]
+
+define:
+  wt - word token, pointer to the start of word.
+  xt - value of codeword ptr, pointer to codeword.
+
 */
 
 /*
 
-# Creates a new header from given string
+# header -- Creates a new header from given string
 
 arguments:
   a0: base of input string
   a1: length of input string
 
-0:        [ latest   ]
-SIZE:     [ codeword ]
-2 * SIZE: [len][name ]
+returns:
+  nothing
+
+0:        [ latest       ]
+SIZE:     [ codeword ptr ]
+2 * SIZE: [len][name     ]
+n * SIZE: [ codeword     ]
 
 */
 
@@ -50,6 +68,14 @@ header:
 
   ret
 
+/*
+
+# add_codeword -- adds a code word to new word
+
+arguments:
+  a0: address of codeword to add
+
+*/
 add_codeword:
   lw t0, ptr_here
   sw a0, 0(t0)
@@ -58,7 +84,53 @@ add_codeword:
   sw t0, ptr_here, t1
   ret
 
+
+/*
+
+# end_word -- updates latest to point to new word
+
+*/
 end_word:
   lw t0, ptr_new_word
   sw t0, ptr_latest, t1
+  ret
+
+/*
+################################################################################
+#
+# extract information from a word token
+#
+################################################################################
+*/
+/*
+
+# wt_to_name -- gets the name from a name token
+
+arguments:
+  a0: word token
+
+returns:
+  a0: start of name
+  a1: length of name
+
+*/
+wt_to_name:
+  lb a1, (2 * SIZE)(a0)
+  addi a0, a0, 2 * SIZE + 1
+  ret
+
+
+/*
+
+# wt_to_xt -- gets the execution token from a name token
+
+arguments:
+  a0: word token
+
+returns:
+  a0: exection token
+
+*/
+wt_to_xt:
+  lw a0, SIZE(a0)
   ret

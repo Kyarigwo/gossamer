@@ -53,12 +53,10 @@ _start:
 
   call cold_start
 
-  call print_wordlist
-# run program
-#  la IP, program
-#1:
-#  call parse_words
-#  j 1b
+1:
+  call parse_words
+  j 1b
+
   call bye
 
 .text
@@ -229,6 +227,8 @@ print:
 # print constants
 
 */
+
+print_literal pipe "|"
 
 print_literal newline, "\n"
 
@@ -422,14 +422,16 @@ parse_words:
 1:
   call parse_word
   beqz a1, 5f         # If no word not found, exit good end
+
   mv s0, a0           # Save word found
   mv s1, a1
+
   mv s2, a2           # Save remainder of line
   mv s3, a3
 
   call find_word      # lookup word
   beqz a0, 2f
-  call name_to_codeword # get codeword
+  call wt_to_xt        # get codeword
   call execute         # and run it!
   j 3f                 # loop bottom
 
@@ -437,7 +439,7 @@ parse_words:
   mv a0, s0
   mv a1, s1
   call word_to_number # see if it is a number
-  bltz a0, 4f # if t0 < t1 then exit
+  bltz a0, 4f         # if t0 < t1 then exit
   push1 a0
 
 3:
@@ -448,6 +450,7 @@ parse_words:
 4:
   call print_question_mark # bad end
   j 6f
+
 
 5:                    # good end
   call print_ok
@@ -466,22 +469,20 @@ arguments:
 
 returns:
   Success:
-    a0: start of found word
-    a1: size of found word
+    a0: pointer to found word
   Failure:
     a0: false (0)
-    a1: unused
 
 */
 find_word:
-  jal x5, sys_push4
+  jal x5, sys_push8
   mv s2, a0
   mv s3, a1
   lw s4, ptr_latest
 1:
   beqz s4, 2f
-  lb a1, (2 * SIZE)(s4)
-  addi a0, s4, 2 * SIZE + 1
+  mv a0, s4
+  call wt_to_name
   mv a2, s2
   mv a3, s3
   call string_eq
@@ -489,13 +490,12 @@ find_word:
   lw s4, 0(s4)
   j 1b
 3:
-  addi a0, s4, 2 * SIZE + 1
-  lb a1, (2 * SIZE)(s4)
-  jal x5, sys_pop4
+  mv a0, s4
+  jal x5, sys_pop8
   ret
 2:
   li a0, 0
-  jal x5, sys_pop4
+  jal x5, sys_pop8
   ret
 
 /*
@@ -683,8 +683,8 @@ print_wordlist:
   lw s0, ptr_latest
 1:
   beqz s0, 2f
-  lb a1, (2* SIZE)(s0)
-  addi a0, s0, 2 * SIZE + 1
+  mv a0, s0
+  call wt_to_name
   call print
   call print_newline
   lw s0, 0(s0)
