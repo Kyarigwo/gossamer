@@ -90,6 +90,9 @@ execute_word:
 codeword_cont:
   .4byte cont
 
+codeword_exit:
+  .4byte code_exit
+
 .text
 
 execute:
@@ -121,6 +124,11 @@ cont:
 */
 .bss
 
+/*
+
+# stack locations
+
+*/
 data_stack_top:
   .4byte 0
 
@@ -130,12 +138,39 @@ return_stack_top:
 local_stack_top:
   .4byte 0
 
+/*
+
+# input variables
+
+*/
+
 input_buffer:
   .space INPUT_BUFFER_MAX
+
+input_buffer_size:
+  .4byte 0
+
+parse_point:
+  .4byte 0
+
+parse_point_size:
+  .4byte 0
+
+/*
+
+# Number formatting areas
+
+*/
 
   .space NUMBER_FORMAT_BUFFER_SIZE
 number_format_buffer:
   .space 1
+
+/*
+
+# Data area variables
+
+*/
 
 data_area_base:
   .4byte 0
@@ -148,6 +183,12 @@ ptr_latest:
 
 ptr_new_word:
   .4byte 0
+
+/*
+
+# system state
+
+*/
 
 .data
 
@@ -269,12 +310,17 @@ returns:
 
 .text
 refill_input:
-  li a0, 0                  # stdin
+  li a0, 0                      # stdin
   la a1, input_buffer
   li a2, INPUT_BUFFER_MAX
   li a7, SYS_READ
   ecall
-  bltz a0, 1f
+  bltz a0, 1f                   # if successful
+  sw a0, input_buffer_size, t0  # set amount of data read
+  la t0, input_buffer           # load base of input
+  sw t0, parse_point, t1        # reset parse point
+  sw a0, parse_point_size, t0   # reset parse size
+
   mv a1, a0
   la a0, input_buffer
   ret
@@ -368,13 +414,29 @@ returns:
   a3: size of remainder
 
 */
-parse_word:
+
+parse_word_general:
   jal x5, sys_push4
   call split_on_ws_end
   mv a0, a2
   mv a1, a3
   call split_on_ws_start
   jal x5, sys_pop4
+  ret
+
+/*
+
+# parse-word -- parses a sigle word from the input buffer
+
+*/
+parse_word:
+  jal x5, sys_push4         # save ra
+  lw a0, parse_point
+  lw a1, parse_point_size
+  call parse_word_general
+  sw a2, parse_point, t0
+  sw a3, parse_point_size, t0
+  jal x5, sys_pop4          # reload ra
   ret
 
 /*
@@ -431,16 +493,10 @@ parse_words:
   mv s0, a0             # Save word found
   mv s1, a1
 
-  mv s2, a2             # Save remainder of line
-  mv s3, a3
-
   call handle_word
   beqz a0, 2f
 
-  mv a0, s2             # restore remainder
-  mv a1, s3
-
-  j 1b                 # loop bottom
+  j 1b                 # parse next word
 
 2:                     # else, if word not in dictionary
   mv a0, s0
@@ -448,8 +504,6 @@ parse_words:
   call handle_number
   beqz a0, 3f         # if t0 < t1 then error exit
 
-  mv a0, s2           # restore remainder
-  mv a1, s3
   j 1b                # parse next word
 
 3:
@@ -485,22 +539,22 @@ returns:
 handle_word:
   jal x5, sys_push4
   call find_word
-  beqz a0, 3f
+  beqz a0, 3f           # word not in dicationary
 
-  mv s0, a0
+  mv s0, a0             # save word location
 
-  lw t0, immediate_mode
-  call wt_immediate
-  or t0, t0, a0
+  lw t0, immediate_mode # are we in immediate mode?
+  call wt_immediate     # is this an immediate word?
+  or t0, t0, a0         # if either
 
   mv a0, s0
   call wt_to_xt
 
-  beqz t0, 1f
+  beqz t0, 1f           # we run the instructions
   call execute
   j 2f
-1:
-  lw t0, ptr_here
+1:                      # else
+  lw t0, ptr_here       # store xt at here
   sw a0, 0(t0)
   addi t0, t0, SIZE
   sw t0, ptr_here, t1
@@ -528,7 +582,7 @@ returns:
 handle_number:
   jal x5, sys_push4
   call word_to_number
-  bltz a0, 2f
+  bltz a0, 3f
   lw t0, immediate_mode
   beqz t0, 1f
   push1 a0
@@ -851,6 +905,13 @@ cold_start:
     lw a0, ptr_latest
     call set_immediate
 
+  # print-wordlist
+    string_literal wordlist, "print-wordlist"
+      call header
+      la a0, gmer_print_wordlist
+      call add_codeword
+      call end_word
+
   jal x5, sys_pop4
   ret
 
@@ -902,17 +963,26 @@ gmer_lit:
   j next
 
 gmer_colon:
+  jal x5, sys_push4
   call parse_word
   call header
   la a0, enter
   call add_codeword
   sw zero, immediate_mode, t0
+  jal x5, sys_pop4
   j next
 
 gmer_semicolon:
-  la a0, code_exit
-  call add_codeword
+  la a0, codeword_exit
+  lw t0, ptr_here
+  sw a0, 0(t0)
+  addi t0, t0, SIZE
+  sw t0, ptr_here, t1
   call end_word
   li t0, 1
   sw t0, immediate_mode, t1
+  j next
+
+gmer_print_wordlist:
+  call print_wordlist
   j next
