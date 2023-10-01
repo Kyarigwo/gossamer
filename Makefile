@@ -3,7 +3,7 @@ export PATH := $(PATH):/home/bruce/.local/riscv/toolchain/bin
 
 SRC_DIR = src
 BIN_DIR = .
-EXEC = $(BIN_DIR)/gossamer
+EXE = $(BIN_DIR)/gossamer
 
 CC = riscv64-unknown-elf-gcc
 CFLAGS = -nostdlib -mabi=ilp32 -march=rv32imac
@@ -15,7 +15,7 @@ SRC = $(wildcard $(SRC_DIR)/*.S)  # gossamer.S macros.S utilities.S words.S
 all: $(EXE) # gossamer
 
 $(EXE): $(SRC)
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRC) -o gossamer
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRC) -o $(EXE)
 
 .PHONY: clean
 clean:

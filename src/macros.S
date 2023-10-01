@@ -91,3 +91,25 @@ print_\label:
 .text
 
 .endm
+
+.macro make_codeword label, value
+add_gmer_\label:
+  jal x5, sys_push4
+  la a0, str_msg_\label
+  la a1, str_msg_length_\label
+  call header
+  la a0, gmer_\label
+  call add_codeword
+  call end_word
+  jal x5, sys_pop4
+  ret
+
+.section .rodata
+str_msg_\label:
+  .ascii "\value"
+.equ str_msg_length_\label, .-str_msg_\label
+
+.text
+gmer_\label:
+
+.endm

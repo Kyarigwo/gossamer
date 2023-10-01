@@ -4,7 +4,9 @@
 
 .global _start
 
-.global ptr_latest, ptr_new_word, ptr_here
+.global ptr_latest, ptr_new_word, ptr_here, immediate_mode
+.global next, enter, codeword_exit
+.global print, number_to_word, parse_word
 /*
 ################################################################################
 #
@@ -57,7 +59,8 @@ _start:
   call parse_words
   j 1b
 
-  call bye
+  li a7, SYS_EXIT
+  ecall
 
 /*
 ################################################################################
@@ -208,21 +211,6 @@ immediate_mode:
 
 /*
 
-# bye -- exits with given exit code
-
-arguments:
-  a0: exit code
-
-returns:
-  nothing, suprisingly
-
-*/
-bye:
-  li a7, SYS_EXIT
-  ecall
-
-/*
-
 # alloc-mem -- allocates PAGESIZE pages of memory
 
 arguments:
@@ -265,35 +253,6 @@ print:
   li a7, SYS_WRITE
   ecall
   ret
-
-/*
-
-# print constants
-
-*/
-
-print_literal pipe "|"
-
-print_literal newline, "\n"
-
-print_literal space, " "
-
-print_literal ok, "ok"
-
-print_literal compiled, "compiled"
-
-print_literal question_mark, "?"
-
-print_literal version, "Version 1.0\n"
-
-print_literal goodbye_world, "Goodbye World!\n"
-
-print_literal hello_world, "Hello World!\n"
-
-print_literal true, "true\n"
-
-print_literal false, "false\n"
-
 
 /*
 
@@ -788,201 +747,3 @@ digit_to_ascii:
 1:
   ret
 
-
-/*
-
-# print_wordlist - prints out all words in wordlist
-
-arguments:
-  none
-
-returns:
-  nothing
-
-*/
-print_wordlist:
-  jal x5, sys_push4
-  lw s0, ptr_latest
-1:
-  beqz s0, 2f
-  mv a0, s0
-  call wt_to_name
-  call print
-  call print_space
-  lw s0, 0(s0)
-  j 1b
-2:
-  jal x5, sys_pop4
-  ret
-
-
-/*
-
-# print_bool - prints true or false based on a0
-
-arguments:
-  a0: if 0 prints false, else true
-
-returns:
-  nothing
-
-*/
-print_bool:
-  jal x5, sys_push4
-  beqz a0, 1f
-  call print_true
-  j 2f
-1:
-  call print_false
-2:
-  jal x5, sys_pop4
-  ret
-
-/*
-
-# cold start
-
-*/
-
-cold_start:
-  jal x5, sys_push4
-
-# bye
-  string_literal bye_str, "bye"
-  call header
-  la a0, gmer_bye
-  call add_codeword
-  call end_word
-
-# version
-  string_literal version_str, "version"
-  call header
-  la a0, gmer_version
-  call add_codeword
-  call end_word
-
-# print hello world
-  string_literal print_hello_str, "print-hello-world"
-  call header
-  la a0, gmer_print_hello_world
-  call add_codeword
-  call end_word
-
-# print goodbye world
-  string_literal print_goodbye_world_str, "print-goodbye-world"
-  call header
-  la a0, gmer_print_goodbye_world
-  call add_codeword
-  call end_word
-
-# .
-  string_literal dot_str,  "."
-  call header
-  la a0, gmer_dot
-  call add_codeword
-  call end_word
-
-# lit
-  string_literal lit, "lit"
-  call header
-  la a0, gmer_lit
-  call add_codeword
-  call end_word
-
-# :
-  string_literal colon, ":"
-  call header
-  la a0, gmer_colon
-  call add_codeword
-  call end_word
-
-# ;
-  string_literal semicolon, ";"
-    call header
-    la a0, gmer_semicolon
-    call add_codeword
-    call end_word
-    lw a0, ptr_latest
-    call set_immediate
-
-  # print-wordlist
-    string_literal wordlist, "print-wordlist"
-      call header
-      la a0, gmer_print_wordlist
-      call add_codeword
-      call end_word
-
-  jal x5, sys_pop4
-  ret
-
-
-.data
-
-lit_codeword:
-  .4byte gmer_lit
-
-.text
-/*
-################################################################################
-#
-# compiled wordlist
-#
-################################################################################
-*/
-
-gmer_bye:
-  li a0, 0
-  call bye
-  j next
-
-gmer_version:
-  call print_version
-  j next
-
-gmer_print_hello_world:
-  call print_hello_world
-  j next
-
-
-gmer_print_goodbye_world:
-  call print_goodbye_world
-  j next
-
-
-gmer_dot:
-  pop1 a0
-  call number_to_word
-  call print
-  call print_space
-  j next
-
-gmer_lit:
-  lw t0, 0(IP)
-  push1 t0
-  addi IP, IP, SIZE
-  j next
-
-gmer_colon:
-  jal x5, sys_push4
-  call parse_word
-  call header
-  la a0, enter
-  call add_codeword
-  sw zero, immediate_mode, t0
-  jal x5, sys_pop4
-  j next
-
-gmer_semicolon:
-  la a0, codeword_exit
-  lw t0, ptr_here
-  sw a0, 0(t0)
-  addi t0, t0, SIZE
-  sw t0, ptr_here, t1
-  call end_word
-  li t0, 1
-  sw t0, immediate_mode, t1
-  j next
-
-gmer_print_wordlist:
-  call print_wordlist
-  j next

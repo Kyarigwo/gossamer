@@ -1,3 +1,10 @@
+/*
+################################################################################
+#
+# Functions to do with creating and modifying words
+#
+################################################################################
+*/
 #include "common.S"
 
 .global header, end_word, add_codeword, set_immediate
