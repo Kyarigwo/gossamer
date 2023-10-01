@@ -1,2 +1,10 @@
-: test version 1 1 . ;
-: test2 print-hello-world ;
+
+: cell 4 ;
+: here here& ? ;
+: allot here + here& ! ;
+: cells cell * ;
+: , here ! cell allot ;
+: b, here b! 1 allot ;
+
+
+

@@ -21,6 +21,7 @@ cold_start:
 
 # bye
   call add_gmer_bye
+  call add_gmer_print
   call add_gmer_version
   call add_gmer_hello_world
   call add_gmer_goodbye_world
@@ -28,12 +29,27 @@ cold_start:
   call add_gmer_lit
   call add_gmer_colon
 
+  call add_gmer_push_hello_world
+
   call add_gmer_semicolon
   lw a0, ptr_latest
   call set_immediate
 
   call add_gmer_print_wordlist
   call add_gmer_bool_dot
+
+  call add_gmer_ptr_here
+  call add_gmer_input_buffer
+
+  call add_gmer_peek
+  call add_gmer_peek_byte
+
+  call add_gmer_poke
+  call add_gmer_poke_byte
+
+  call add_gmer_plus
+  call add_gmer_minus
+  call add_gmer_times
 
   jal x5, sys_pop4
   ret
@@ -59,6 +75,20 @@ make_codeword bye, "bye"
   ecall
   j next
 
+make_codeword push_hello_world, "hw"
+  la a0, hello_world_msg_length
+  la a1, hello_world_msg
+  push2
+  j next
+
+make_codeword print, "print"
+  pop2
+  mv t0, a0
+  mv a0, a1
+  mv a1, t0
+  call print
+  j next
+
 make_codeword version, "version"
   call print_version
   j next
@@ -72,15 +102,15 @@ make_codeword goodbye_world, "goodbye-world"
   j next
 
 make_codeword dot, "."
-  pop1 a0
+  pop1
   call number_to_word
   call print
   call print_space
   j next
 
 make_codeword lit, "lit"
-  lw t0, 0(IP)
-  push1 t0
+  lw a0, 0(IP)
+  push1
   addi IP, IP, SIZE
   j next
 
@@ -123,7 +153,7 @@ make_codeword print_wordlist, "wordlist"
 
 make_codeword bool_dot, "bool."
   jal x5, sys_push4
-  pop1 a0
+  pop1
   beqz a0, 1f
   call print_true
   j 2f
@@ -133,12 +163,78 @@ make_codeword bool_dot, "bool."
   jal x5, sys_pop4
   j next
 
+/*
+################################################################################
+#
+# memory access
+#
+################################################################################
+*/
+make_codeword peek, "?"
+  pop1
+  lw a0, 0(a0)
+  push1
+  j next
+
+make_codeword peek_byte, "b?"
+  pop1
+  lb a0, 0(a0)
+  push1
+  j next
+
+make_codeword poke, "!"
+  pop2
+  sw a1, 0(a0)
+  j next
+
+make_codeword poke_byte, "b!"
+  pop2
+  sb a1, 0(a0)
+  j next
+
+/*
+################################################################################
+#
+# System variables
+#
+################################################################################
+*/
+make_codeword ptr_here, "here&"
+  la a0, ptr_here
+  push1
+  j next
+
+make_codeword input_buffer, "input-buffer"
+  la a1, input_buffer
+  lw a0, input_buffer_size
+  push2
+  j next
 
 /*
 
 # print constants
 
 */
+
+/*
+
+#  print -- writes bytes to standard out
+
+arguments:
+  a0: base of string to write
+  a1: size of string to write
+
+returns:
+  nothing
+
+*/
+print:
+  mv a2, a1
+  mv a1, a0
+  li a0, 1          # stdout
+  li a7, SYS_WRITE
+  ecall
+  ret
 
 print_literal pipe "|"
 
@@ -162,3 +258,28 @@ print_literal true, "true\n"
 
 print_literal false, "false\n"
 
+/*
+################################################################################
+#
+# Arithmatic
+#
+################################################################################
+*/
+
+make_codeword plus, "+"
+  pop2
+  add a0, a0, a1
+  push1
+  j next
+
+make_codeword minus, "-"
+  pop2
+  sub a0, a1, a0
+  push1
+  j next
+
+make_codeword times, "*"
+  pop2
+  mul a0, a1, a0
+  push1
+  j next

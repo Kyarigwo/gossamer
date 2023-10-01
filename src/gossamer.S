@@ -4,9 +4,8 @@
 
 .global _start
 
-.global ptr_latest, ptr_new_word, ptr_here, immediate_mode
 .global next, enter, codeword_exit
-.global print, number_to_word, parse_word
+.global number_to_word, parse_word
 /*
 ################################################################################
 #
@@ -121,88 +120,6 @@ cont:
 /*
 ################################################################################
 #
-# System Variables
-#
-################################################################################
-*/
-.bss
-
-/*
-
-# stack locations
-
-*/
-data_stack_top:
-  .4byte 0
-
-return_stack_top:
-  .4byte 0
-
-local_stack_top:
-  .4byte 0
-
-/*
-
-# input variables
-
-*/
-
-input_buffer:
-  .space INPUT_BUFFER_MAX
-
-input_buffer_size:
-  .4byte 0
-
-parse_point:
-  .4byte 0
-
-parse_point_size:
-  .4byte 0
-
-/*
-
-# Number formatting areas
-
-*/
-
-  .space NUMBER_FORMAT_BUFFER_SIZE
-number_format_buffer:
-  .space 1
-
-/*
-
-# Data area variables
-
-*/
-
-data_area_base:
-  .4byte 0
-
-ptr_here:
-  .4byte 0
-
-ptr_latest:
-  .4byte 0
-
-ptr_new_word:
-  .4byte 0
-
-/*
-
-# system state
-
-*/
-
-.data
-
-immediate_mode:
-  .4byte 1
-
-.text
-
-/*
-################################################################################
-#
 # Compiled functions
 #
 ################################################################################
@@ -231,26 +148,6 @@ alloc_mem:
   li a4, -1
   li a5, 0
   li a7, SYS_MMAP
-  ecall
-  ret
-
-/*
-
-#  print -- writes bytes to standard out
-
-arguments:
-  a0: base of string to write
-  a1: size of string to write
-
-returns:
-  nothing
-
-*/
-print:
-  mv a2, a1
-  mv a1, a0
-  li a0, 1          # stdout
-  li a7, SYS_WRITE
   ecall
   ret
 
@@ -544,7 +441,7 @@ handle_number:
   bltz a0, 3f
   lw t0, immediate_mode
   beqz t0, 1f
-  push1 a0
+  push1
   j 2f
 1:
   lw t0, ptr_here

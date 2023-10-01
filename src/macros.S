@@ -36,14 +36,36 @@
 ################################################################################
 */
 
-.macro push1 reg0
+.macro push1
   addi DS, DS, -(1 * SIZE)
-  sw \reg0, (0 * SIZE)(DS)
+  sw a0, (0 * SIZE)(DS)
 .endm
 
-.macro pop1 reg0
-  lw \reg0, (0 * SIZE)(DS)
+.macro pop1
+  lw a0, (0 * SIZE)(DS)
   addi DS,  DS, (1 * SIZE)
+.endm
+
+/*
+
+#  push a0 and a1 onto the stack, with order a1 a0
+
+*/
+.macro push2
+  addi DS, DS, -(2 * SIZE)
+  sw a0, (0 * SIZE)(DS)
+  sw a1, (1 * SIZE)(DS)
+.endm
+
+/*
+
+# pop a0 and a1 of of the stack, with order a1, a0
+
+*/
+.macro pop2
+  lw a0, (0 * SIZE)(DS)
+  lw a1, (1 * SIZE)(DS)
+  addi DS,  DS, (2 * SIZE)
 .endm
 
 
