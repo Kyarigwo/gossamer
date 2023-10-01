@@ -284,6 +284,15 @@ parse_word_general:
 
 # parse-word -- parses a sigle word from the input buffer
 
+arguments:
+  nothing
+
+returns:
+  a0: start of found word
+  a1: length of found word
+  a2: start of remaining
+  a3: length of remaining
+
 */
 parse_word:
   jal x5, sys_push4         # save ra
@@ -293,6 +302,54 @@ parse_word:
   sw a2, parse_point, t0
   sw a3, parse_point_size, t0
   jal x5, sys_pop4          # reload ra
+  ret
+
+/*
+
+# parse_character_general - parses until it finds ascii char, or eof
+
+arguments:
+  a0: start of string
+  a1: size of string
+  a2: character to find
+
+returns:
+  a0: location of character if found, else 0
+
+*/
+parse_character_general:
+  add a3, a0, a1            # set a3 as eoi
+1:
+  bge a0, a3, 3f
+  lb a4, 0(a0)
+  beq a4, a2, 2f
+  addi a0, a0, 1
+  j 1b
+2:                          # found value
+  ret
+3:                          # did not find value
+  li a0, 0
+  ret
+
+/*
+
+# parse_character - parses input until if finds ascii char, or eoi
+
+arguments:
+  a0: character to find
+
+returns:
+  a0 : location of character to find, or 0 if not found
+
+side effects:
+  will move input_ptr to location of found character, or eoi if
+      not found.
+
+*/
+parse_character:
+  jal x5, sys_push4
+
+  jal x5, sys_pop4
   ret
 
 /*
