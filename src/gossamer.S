@@ -54,7 +54,15 @@ _start:
 
   call cold_start
 
+  la a0, secondary_words
+  la a1, secondary_words_length
+  sw a0, parse_point, t0
+  sw a1, parse_point_size, t0
+
+  call parse_words
+
 1:
+  call refill_input
   call parse_words
   j 1b
 
@@ -397,7 +405,6 @@ returns:
 */
 parse_words:
   jal x5, sys_push8
-  call refill_input
 
 1:
   call parse_word

@@ -19,6 +19,8 @@
 # stack locations
 
 */
+.p2align 2
+
 data_stack_top:
   .4byte 0
 
@@ -34,8 +36,11 @@ local_stack_top:
 
 */
 
+input_buffer_ptr:
+  .4byte
+
 input_buffer:
-  .space INPUT_BUFFER_MAX
+.space INPUT_BUFFER_MAX
 
 input_buffer_size:
   .4byte 0
