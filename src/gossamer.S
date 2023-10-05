@@ -5,11 +5,11 @@
 .global _start
 
 .global next, enter, codeword_exit
-.global number_to_word, parse_word
+.global number_to_word, word_parse
 /*
 ################################################################################
 #
-# Start up code
+# Start code
 #
 ################################################################################
 */
@@ -24,28 +24,28 @@ _start:
 
 # setup data stack
   li a0, DATA_STACK_SIZE
-  call alloc_mem
+  call allot_memory
   li t0, PAGESIZE * DATA_STACK_SIZE
   add DS, a0, t0
   sw DS, data_stack_top, t0
 
 # setup return stack
   li a0, RETURN_STACK_SIZE
-  call alloc_mem
+  call allot_memory
   li t0, PAGESIZE * RETURN_STACK_SIZE
   add RS, a0, t0
   sw RS, return_stack_top, t0
 
 # setup local stack
   li a0, LOCAL_STACK_SIZE
-  call alloc_mem
+  call allot_memory
   li t0, PAGESIZE * LOCAL_STACK_SIZE
   add LS, a0, t0
   sw LS, local_stack_top, t0
 
 # create data area
   li a0, DATA_AREA_SIZE
-  call alloc_mem
+  call allot_memory
 
   sw a0, data_area_base, t0
   sw a0, ptr_here, t0
@@ -59,11 +59,11 @@ _start:
   sw a0, parse_point, t0
   sw a1, parse_point_size, t0
 
-  call parse_words
+  call interpret
 
 1:
   call refill_input
-  call parse_words
+  call interpret
   j 1b
 
   li a7, SYS_EXIT
@@ -72,7 +72,7 @@ _start:
 /*
 ################################################################################
 #
-# VM start
+# VM module
 #
 ################################################################################
 */
@@ -117,22 +117,14 @@ cont:
   jal x5, sys_pop4
   ret
 
-/*
-################################################################################
-#
-# VM end
-#
-################################################################################
-*/
 
 /*
 ################################################################################
 #
-# Compiled functions
+# Startup Module
 #
 ################################################################################
 */
-
 
 /*
 
@@ -145,7 +137,7 @@ returns:
   a0: address of allocated area, or 0 for failure
 
 */
-alloc_mem:
+allot_memory:
   mv t0, a0
   li t1, PAGESIZE
   mul t0, t0, t1
@@ -158,6 +150,15 @@ alloc_mem:
   li a7, SYS_MMAP
   ecall
   ret
+
+
+/*
+################################################################################
+#
+# interpret module
+#
+################################################################################
+*/
 
 /*
 
@@ -192,170 +193,90 @@ refill_input:
   li a0, 0
   ret
 
-
 /*
 
-# split_on_ws_start - splits a string where white space begins
+whitespace_parse -- moves ^parse to first point past
+                              whitespace, or end of buffer
 
-arguments:
-  a0: start of string
-  a1: size of string
-
-returns:
-  a0: base of lower string
-  a1: the size lower string
-  a2: base of upper string
-  a3: size of upper string
-
-locals:
-  a4: constant 32
-  a5: top of input string
-  a6: char at point
-
-*/
-split_on_ws_start:
-  mv a2, a0         # start split at input string
-  li a4, 32         # load constant
-  add a5, a0, a1    # a5 = top of input string
-1:
-  bge a2, a5, 2f    # if split not < a5, exit
-  lb a6, 0(a2)      # get byte at a2
-  ble a6, a4, 2f    # if a6 <= 32 done
-  addi a2, a2, 1    # next a2
-  j 1b
-2:
-  sub a1, a2, a0
-  sub a3, a5, a2
-  ret
-
-/*
-
-# split_on_ws_end - splits a string where white space ends
-
-arguments:
-  a0: start of string
-  a1: size of string
+input:
+  none
 
 returns:
-  a0: base of lower string
-  a1: the size of lower string
-  a2: base of upper string
-  a3: size of upper string
-
-locals:
-  a4: const value 32
-  a5: top of input string
-  a6: char at point
+  a0: original value of ^parse
+  a1: distance between new ^parse and old ^parse
 
 */
-split_on_ws_end:
-  mv a2, a0
-  li a4, 32
-  add a5, a0, a1
-1:
-  bge a2, a5, 2f
-  lb a6, 0(a2)
-  bgt a6, a4, 2f
-  addi a2, a2, 1
-  j 1b
-2:
-  sub a1, a2, a0
-  sub a3, a5, a2
-  ret
-
-/*
-
-# parse_word - first white space seperated word
-
-arguments:
-  a0: start of string
-  a1: size of string
-
-returns:
-  a0: start of word
-  a1: size of word
-  a2: start of remainder
-  a3: size of remainder
-
-*/
-
-parse_word_general:
-  jal x5, sys_push4
-  call split_on_ws_end
-  mv a0, a2
-  mv a1, a3
-  call split_on_ws_start
-  jal x5, sys_pop4
-  ret
-
-/*
-
-# parse-word -- parses a sigle word from the input buffer
-
-arguments:
-  nothing
-
-returns:
-  a0: start of found word
-  a1: length of found word
-  a2: start of remaining
-  a3: length of remaining
-
-*/
-parse_word:
-  jal x5, sys_push4         # save ra
+whitespace_parse:
   lw a0, parse_point
   lw a1, parse_point_size
-  call parse_word_general
-  sw a2, parse_point, t0
-  sw a3, parse_point_size, t0
-  jal x5, sys_pop4          # reload ra
-  ret
-
-/*
-
-# parse_character_general - parses until it finds ascii char, or eof
-
-arguments:
-  a0: start of string
-  a1: size of string
-  a2: character to find
-
-returns:
-  a0: location of character if found, else 0
-
-*/
-parse_character_general:
-  add a3, a0, a1            # set a3 as eoi
+  li a2, 32           # space to compare to
+  mv a4, a0           # record original location of ^parse
+  add a3, a0, a1      # a3 = a0 + a1 pointer to end of parse area
 1:
-  bge a0, a3, 3f
-  lb a4, 0(a0)
-  beq a4, a2, 2f
-  addi a0, a0, 1
-  j 1b
-2:                          # found value
-  ret
-3:                          # did not find value
-  li a0, 0
+  bge a0, a3, 2f      # while parse-point < parse-top
+  lb a5, 0(a0)        #   load byte at parse point
+  bgt a5, a2, 2f      #   if byte is > 32, exit
+  addi a0, a0, 1      #   advance parse point by one
+  j 1b                # wend
+2:
+  sub a1, a3, a0      # parse_point_size = parse-top - parse point
+  sw a0, parse_point, t0
+  sw a1, parse_point_size, t0
+  sub a1, a0, a4
+  mv a0, a4
   ret
 
 /*
 
-# parse_character - parses input until if finds ascii char, or eoi
+non_whitespace_parse -- moves ^parse to first whitespace point past
+                          non-whitespace, or end of of buffer
 
-arguments:
-  a0: character to find
+input:
+  none
 
 returns:
-  a0 : location of character to find, or 0 if not found
-
-side effects:
-  will move input_ptr to location of found character, or eoi if
-      not found.
+  a0: original value of ^parse
+  a1: distance between new ^parse and old ^parse
 
 */
-parse_character:
-  jal x5, sys_push4
+non_whitespace_parse:
+  lw a0, parse_point
+  lw a1, parse_point_size
+  li a2, 32           # space to compare to
+  mv a4, a0           # record original location of ^parse
+  add a3, a0, a1      # a3 = a0 + a1 pointer to end of parse area
+1:
+  bge a0, a3, 2f      # while parse-point < parse-top
+  lb a5, 0(a0)        #   load byte at parse point
+  ble a5, a2, 2f      #   if byte is <= 32, exit
+  addi a0, a0, 1      #   advance parse point by one
+  j 1b                # wend
+2:
+  sub a1, a3, a0      # parse_point_size = parse-top - parse point
+  sw a0, parse_point, t0
+  sw a1, parse_point_size, t0
+  sub a1, a0, a4
+  mv a0, a4
+  ret
+
+/*
+
+word_parse -- moves ^parse to past next whitespace seperated word
+                or at end of buffer
+
+input:
+  none
+
+returns:
+  a0: ^parse at start of word
+  a1: length of word, or 0 if not found
+
+*/
+word_parse:
+  jal x5, sys_push4         #save ra etc
+
+  call whitespace_parse
+  call non_whitespace_parse
 
   jal x5, sys_pop4
   ret
@@ -394,7 +315,7 @@ string_eq:
 
 /*
 
-# parse_words - reads line, splits into words, and prints them out
+# interpret - reads line, splits into words, and prints them out
 
 arguments:
   none
@@ -403,45 +324,41 @@ returns:
   none
 
 */
-parse_words:
-  jal x5, sys_push8
+interpret:
+  jal x5, sys_push4
 
 1:
-  call parse_word
-  beqz a1, 4f           # If no word found, end of  line
+  call word_parse
+  beqz a1, 2f           # If no word found, end of  line
 
   mv s0, a0             # Save word found
   mv s1, a1
 
-  call handle_word
-  beqz a0, 2f
+  call handle_word      # try to handle like a word
+  bnez a0, 1b
 
-  j 1b                 # parse next word
-
-2:                     # else, if word not in dictionary
   mv a0, s0
   mv a1, s1
-  call handle_number
-  beqz a0, 3f         # if t0 < t1 then error exit
+  call handle_number    # try to handle like  a number
+  bnez a0, 1b           # if a0 != 0 next word
 
-  j 1b                # parse next word
-
-3:
   call print_question_mark # bad end
   call print_newline
-  jal x5, sys_pop8
+  jal x5, sys_pop4
   ret
 
-4:                    # good end
+2:                    # good end
   lw t0, immediate_mode
-  beqz t0, 5f
+  beqz t0, 3f
   call print_ok
-  j 6f
-5:
-  call print_compiled
-6:
   call print_newline
-  jal x5, sys_pop8
+  jal x5, sys_pop4
+  ret
+
+3:
+  call print_compiled
+  call print_newline
+  jal x5, sys_pop4
   ret
 
 /*
@@ -453,22 +370,19 @@ arguments:
   a1: length of input string
 
 returns:
-  a0: true if handled, otherwise false
+  a0: 1 if handled, otherwise 0
 
 */
 handle_word:
   jal x5, sys_push4
   call find_word
-  beqz a0, 3f           # word not in dicationary
+  beqz a1, 3f           # word not in dicationary
 
-  mv s0, a0             # save word location
+  addi a1, a1, 1        # if word is not immediate  a1 = -1, so now 0
+                        // if word is immediate, a1 = 2
 
   lw t0, immediate_mode # are we in immediate mode?
-  call wt_immediate     # is this an immediate word?
-  or t0, t0, a0         # if either
-
-  mv a0, s0
-  call wt_to_xt
+  or t0, t0, a1         # if either
 
   beqz t0, 1f           # we run the instructions
   call execute
@@ -496,7 +410,7 @@ arguments:
   a1: length of input string
 
 returns:
-  a0: true if handled, otherwise false
+  a0: 1 if handled, otherwise 0
 
 */
 handle_number:
@@ -533,36 +447,49 @@ arguments:
   a1: size of target word
 
 returns:
-  Success:
-    a0: pointer to found word
-  Failure:
-    a0: false (0)
+  a0: xt if word found, 0 otherwise
+  a1: 0 if not found, -1 if not immediate, 1 if immdediate
 
 */
 find_word:
-  jal x5, sys_push8
-  mv s2, a0
-  mv s3, a1
-  lw s4, ptr_latest
+  jal x5, sys_push4
+
+  mv s0, a0           # save target
+  mv s1, a1
+
+  la s2, ptr_latest   # load word pointer
+
 1:
-  beqz s4, 2f
-  mv a0, s4
-  call wt_to_name
-  mv a2, s2
-  mv a3, s3
-  call string_eq
-  bnez a0, 3f
-  lw s4, 0(s4)
-  j 1b
+  lw s2, 0(s2)        # next word pointer
+  beqz s2, 2f         # while != 0
+
+  mv a0, s2
+  call wt_to_name     # get name of word
+
+  mv a2, s0
+  mv a3, s1
+  call string_eq      # compare it to target
+
+  beqz a0, 1b         # if != wend
+
+  mv a0, s2           # check for immediate  word
+  call wt_immediate
+  mv t0, a0
+
+  mv a0, s2
+  call wt_to_xt
+  li a1, -1
+  beqz t0, 3f
+  li a1, 1
 3:
-  mv a0, s4
-  jal x5, sys_pop8
-  ret
-2:
-  li a0, 0
-  jal x5, sys_pop8
+  jal x5, sys_pop4
   ret
 
+2:
+  li a1, 0
+  li a0, 0            # return 0
+  jal x5, sys_pop4
+  ret
 /*
 
 # word_to_number - converts word to + number.  -1 if fail

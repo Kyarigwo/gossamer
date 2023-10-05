@@ -48,13 +48,13 @@
 
 /*
 
-#  push a0 and a1 onto the stack, with order a1 a0
+#  push a0 and a1 onto the stack, with order a0 a1
 
 */
 .macro push2
   addi DS, DS, -(2 * SIZE)
-  sw a0, (0 * SIZE)(DS)
-  sw a1, (1 * SIZE)(DS)
+  sw a1, (0 * SIZE)(DS)
+  sw a0, (1 * SIZE)(DS)
 .endm
 
 /*
@@ -63,8 +63,8 @@
 
 */
 .macro pop2
-  lw a0, (0 * SIZE)(DS)
-  lw a1, (1 * SIZE)(DS)
+  lw a1, (0 * SIZE)(DS)
+  lw a0, (1 * SIZE)(DS)
   addi DS,  DS, (2 * SIZE)
 .endm
 

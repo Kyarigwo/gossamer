@@ -8,7 +8,7 @@
 #include "common.S"
 #include "macros.S"
 
-.global cold_start, lit_codeword
+.global cold_start, lit_codeword, print
 .global print_newline, print_ok, print_compiled, print_space, print_question_mark
 /*
 
@@ -116,7 +116,7 @@ make_codeword lit, "lit"
 
 make_codeword colon, ":"
   jal x5, sys_push4
-  call parse_word
+  call word_parse
   call header
   la a0, enter
   call add_codeword

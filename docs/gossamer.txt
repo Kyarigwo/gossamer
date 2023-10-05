@@ -1,2 +1,38 @@
 
-To start
+# Start up code
+
+## primary words
+
+allot-memory
+
+# VM
+
+## primary words
+
+enter
+exit
+execute
+
+# interpret
+
+## primary words
+
+refill-input
+
+whitespace-parse
+non-whitespace-parse
+character-parse
+word-parse
+
+"=
+
+interpret
+
+push1 : a0 => ( -- a0 )
+pop1  : ( a0 -- ) => a0
+
+push2 : a0, a1 => ( -- a0 a1 )
+pop2  : ( a0 a1 -- ) => a0, a1
+
+
+word_parse

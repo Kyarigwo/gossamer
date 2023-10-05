@@ -5,6 +5,7 @@
 : , here ! cell allot ;
 : b, here b! 1 allot ;
 : 1+ 1 + ;
+: gw goodbye-world ;
 
 
 
