@@ -3,6 +3,7 @@
 
 
 .global refill_input, whitespace_parse, non_whitespace_parse, word_parse
+.global char_parse
 .global string_eq, interpret, find_word, word_to_number, literal
 
 /*
@@ -132,6 +133,43 @@ word_parse:
   call non_whitespace_parse
 
   jal x5, sys_pop4
+  ret
+
+/*
+
+char-parse -- moves ^parse to next instance of char
+              or at end of buffer
+
+input:
+  a0: char to find
+
+returns:
+  a0: ^parse at start of search
+  a1: length of characters to matching char
+
+*/
+char_parse:
+
+  lw a1, parse_point
+  lw a2, parse_point_size
+
+  mv a4, a1                 # record original location of ^parse
+  add a3, a1, a2            # a3 = pointer to end of parse area
+1:
+  bge a1, a3, 3f            # while parse-point < parse-top
+  lb a5, 0(a1)              # load byte at parse point
+  beq a5, a0, 2f            # if byte is found, exit
+  addi a1, a1, 1            # advance parse point by one
+  j 1b                      # wend
+2:
+  addi a1, a1, 1
+3:
+  sub a2, a3, a1
+  sw a1, parse_point, t0
+  sw a2, parse_point_size, t0
+  mv a0, a4
+  sub a1, a1, a0
+
   ret
 
 /*

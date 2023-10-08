@@ -9,6 +9,7 @@
 
 .global header, end_word, add_codeword, set_immediate
 .global add_gmer_lit, add_gmer_colon, add_gmer_semicolon, gmer_lit
+.global add_gmer_branch, add_gmer_branch0
 
 /*
 ################################################################################
@@ -159,4 +160,19 @@ make_codeword semicolon, ";"
   call end_word
   li t0, 1
   sw t0, immediate_mode, t1
+  j next
+
+
+make_codeword branch, "branch"
+  lw a0, 0(IP)
+  mv IP, a0
+  j next
+
+make_codeword branch0, "branch-false"
+  lw a1, 0(IP)
+  pop1
+  addi IP, IP, SIZE
+  bnez a0, 1f
+  mv IP, a1
+1:
   j next

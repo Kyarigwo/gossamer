@@ -17,12 +17,19 @@
   !
   b!
 
+# arithmatic
+  +
+  -
+  *
+
+
 # interpret
 
 refill-input
 whitespace-parse
 non-whitespace-parse
 word-parse
+char-parse
 "=
 interpret
 find-word
@@ -54,6 +61,8 @@ immediate
 :
 ;
 lit
+branch
+branch-false
 
 # Dictionary
 
@@ -64,4 +73,15 @@ immediate?
 # Utilities
 
 b-copy
+
+# Stack manipulation
+  drop
+  swap
+  nip
+  dup
+  over
+  tuck
+  rot
+  -rot
+
 

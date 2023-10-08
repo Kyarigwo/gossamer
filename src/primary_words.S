@@ -48,6 +48,7 @@ cold_start:
   call add_gmer_whitespace_parse
   call add_gmer_non_whitespace_parse
   call add_gmer_word_parse
+  call add_gmer_char_parse
   call add_gmer_string_eq
   call add_gmer_interpret
   call add_gmer_find_word
@@ -81,6 +82,8 @@ cold_start:
   call set_immediate
   call add_gmer_lit
   call add_gmer_colon
+  call add_gmer_branch
+  call add_gmer_branch0
 
 # Dictionary words
   call add_gmer_wt_to_name
@@ -90,6 +93,15 @@ cold_start:
 # Utilities
   call add_gmer_memcpy
 
+# Stack manipulation
+  call add_gmer_drop
+  call add_gmer_swap
+  call add_gmer_nip
+  call add_gmer_dup
+  call add_gmer_over
+  call add_gmer_tuck
+  call add_gmer_rot
+  call add_gmer_minus_rot
 
   jal x5, sys_pop4
   ret
@@ -126,6 +138,12 @@ make_codeword non_whitespace_parse, "non-whitespace-parse"
 
 make_codeword word_parse, "word-parse"
   call word_parse
+  push2
+  j next
+
+make_codeword char_parse, "char-parse"
+  pop1
+  call char_parse
   push2
   j next
 
@@ -201,16 +219,13 @@ make_codeword bye, "bye"
   j next
 
 make_codeword push_hello_world, "hw"
-  la a0, hello_world_msg_length
-  la a1, hello_world_msg
+  la a1, hello_world_msg_length
+  la a0, hello_world_msg
   push2
   j next
 
 make_codeword print, "print"
   pop2
-  mv t0, a0
-  mv a0, a1
-  mv a1, t0
   call print
   j next
 
@@ -471,7 +486,7 @@ make_codeword plus, "+"
 
 make_codeword minus, "-"
   pop2
-  sub a0, a1, a0
+  sub a0, a0, a1
   push1
   j next
 
@@ -479,4 +494,68 @@ make_codeword times, "*"
   pop2
   mul a0, a1, a0
   push1
+  j next
+
+/*
+################################################################################
+#
+# stack manipulation
+#
+################################################################################
+*/
+
+make_codeword drop, "drop"
+  pop1
+  j next
+
+make_codeword swap, "swap"
+  pop2
+  mv t0, a0
+  mv a0, a1
+  mv a1, t0
+  push2
+  j next
+
+make_codeword nip, "nip"
+  pop2
+  mv a0, a1
+  push1
+  j next
+
+make_codeword dup, "dup"
+  pop1
+  mv a1, a0
+  push2
+  j next
+
+make_codeword over, "over"
+  pop2
+  mv a2, a0
+  push3
+  j next
+
+make_codeword tuck, "tuck"
+  pop2
+  mv a2, a1
+  mv a1, a0
+  mv a0, a2
+  push3
+  j next
+
+make_codeword rot, "rot"
+  pop3
+  mv t0, a0
+  mv a0, a1
+  mv a1, a2
+  mv a2, t0
+  push3
+  j next
+
+make_codeword minus_rot, "-rot"
+  pop3
+  mv t0, a2
+  mv a2, a1
+  mv a1, a0
+  mv a0, t0
+  push3
   j next
