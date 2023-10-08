@@ -1,38 +1,67 @@
 
-# Start up code
+## Primary words
 
-## primary words
+  bye
+  hw
+  print
+  version
+  hello-word
+  goodbye-word
+  .
+  wordlist
+  bool.
 
-allot-memory
-
-# VM
-
-## primary words
-
-enter
-exit
-execute
+# Memory access
+  ?
+  b?
+  !
+  b!
 
 # interpret
 
-## primary words
-
 refill-input
-
 whitespace-parse
 non-whitespace-parse
-character-parse
 word-parse
-
 "=
-
 interpret
+find-word
+">#
+literal
 
-push1 : a0 => ( -- a0 )
-pop1  : ( a0 -- ) => a0
+# vm
 
-push2 : a0, a1 => ( -- a0 a1 )
-pop2  : ( a0 a1 -- ) => a0, a1
+exit
+execute
 
+# System variables
 
-word_parse
+&here
+^here
+input-buffer
+^parse
+#parse
+latest-word
+new-word
+immediate-mode
+
+# Compile words
+
+header
+add-codeword
+end-word
+immediate
+:
+;
+lit
+
+# Dictionary
+
+wt>name
+wt>xt
+immediate?
+
+# Utilities
+
+b-copy
+

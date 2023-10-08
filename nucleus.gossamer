@@ -1,9 +1,8 @@
 : cell 4 ;
-: here here& ? ;
-: allot here + here& ! ;
+: allot ^here + &here ! ;
 : cells cell * ;
-: , here ! cell allot ;
-: b, here b! 1 allot ;
+: , ^here ! cell allot ;
+: b, ^here b! 1 allot ;
 : 1+ 1 + ;
 : gw goodbye-world ;
 

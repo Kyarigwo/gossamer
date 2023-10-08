@@ -6,10 +6,10 @@
 ################################################################################
 */
 #include "common.S"
-#include "macros.S"
 
 .global cold_start, lit_codeword, print
-.global print_newline, print_ok, print_compiled, print_space, print_question_mark
+.global print_newline, print_ok, print_compiled, print_space,
+.global print_question_mark
 /*
 
 # cold start
@@ -19,27 +19,19 @@
 cold_start:
   jal x5, sys_push4
 
-# bye
+#
   call add_gmer_bye
   call add_gmer_print
   call add_gmer_version
   call add_gmer_hello_world
   call add_gmer_goodbye_world
   call add_gmer_dot
-  call add_gmer_lit
-  call add_gmer_colon
 
   call add_gmer_push_hello_world
-
-  call add_gmer_semicolon
-  lw a0, ptr_latest
-  call set_immediate
 
   call add_gmer_print_wordlist
   call add_gmer_bool_dot
 
-  call add_gmer_ptr_here
-  call add_gmer_input_buffer
 
   call add_gmer_peek
   call add_gmer_peek_byte
@@ -51,6 +43,54 @@ cold_start:
   call add_gmer_minus
   call add_gmer_times
 
+# interpret words
+  call add_gmer_refill_input
+  call add_gmer_whitespace_parse
+  call add_gmer_non_whitespace_parse
+  call add_gmer_word_parse
+  call add_gmer_string_eq
+  call add_gmer_interpret
+  call add_gmer_find_word
+  call add_gmer_word_to_number
+  call add_gmer_literal
+
+# VM words
+  call add_gmer_exit
+  call add_gmer_execute
+
+# Startup words
+  call add_gmer_allot_memory
+
+# System variables
+  call add_gmer_ptr_here
+  call add_gmer_here
+  call add_gmer_input_buffer
+  call add_gmer_parse_point
+  call add_gmer_parse_point_size
+  call add_gmer_latest_word
+  call add_gmer_new_word
+  call add_gmer_immediate_mode
+
+# Compile words
+  call add_gmer_header
+  call add_gmer_add_codeword
+  call add_gmer_end_word
+  call add_gmer_immediate
+  call add_gmer_semicolon
+  lw a0, ptr_latest
+  call set_immediate
+  call add_gmer_lit
+  call add_gmer_colon
+
+# Dictionary words
+  call add_gmer_wt_to_name
+  call add_gmer_wt_to_xt
+  call add_gmer_wt_immediate
+
+# Utilities
+  call add_gmer_memcpy
+
+
   jal x5, sys_pop4
   ret
 
@@ -61,6 +101,91 @@ lit_codeword:
   .4byte gmer_lit
 
 .text
+/*
+################################################################################
+#
+# interpret words
+#
+################################################################################
+*/
+
+make_codeword refill_input, "refill-input"
+  call refill_input
+  push2
+  j next
+
+make_codeword whitespace_parse, "whitespace-parse"
+  call whitespace_parse
+  push2
+  j next
+
+make_codeword non_whitespace_parse, "non-whitespace-parse"
+  call non_whitespace_parse
+  push2
+  j next
+
+make_codeword word_parse, "word-parse"
+  call word_parse
+  push2
+  j next
+
+make_codeword string_eq, "\"="
+  pop4
+  call string_eq
+  push1
+  j next
+
+make_codeword interpret, "interpret"
+  call interpret
+  j next
+
+make_codeword find_word, "find-word"
+  pop2
+  call find_word
+  push2
+  j next
+
+make_codeword word_to_number, "\">#"
+  pop2
+  call word_to_number
+  push1
+  j next
+
+make_codeword literal, "literal"
+  pop1
+  call literal
+  j next
+
+/*
+################################################################################
+#
+# VM words
+#
+################################################################################
+*/
+
+make_codeword exit, "exit"
+  j code_exit
+
+make_codeword execute, "execute"
+  pop1
+  j execute
+  j next
+
+/*
+################################################################################
+#
+# Startup words
+#
+################################################################################
+*/
+
+make_codeword allot_memory, "allot-memory"
+  pop1
+  call allot_memory
+  push1
+  j next
+
 /*
 ################################################################################
 #
@@ -106,34 +231,6 @@ make_codeword dot, "."
   call number_to_word
   call print
   call print_space
-  j next
-
-make_codeword lit, "lit"
-  lw a0, 0(IP)
-  push1
-  addi IP, IP, SIZE
-  j next
-
-make_codeword colon, ":"
-  jal x5, sys_push4
-  call word_parse
-  call header
-  la a0, enter
-  call add_codeword
-  sw zero, immediate_mode, t0
-  jal x5, sys_pop4
-  j next
-
-# gmer_semicolon:
-make_codeword semicolon, ";"
-  la a0, codeword_exit
-  lw t0, ptr_here
-  sw a0, 0(t0)
-  addi t0, t0, SIZE
-  sw t0, ptr_here, t1
-  call end_word
-  li t0, 1
-  sw t0, immediate_mode, t1
   j next
 
 make_codeword print_wordlist, "wordlist"
@@ -199,8 +296,13 @@ make_codeword poke_byte, "b!"
 #
 ################################################################################
 */
-make_codeword ptr_here, "here&"
+make_codeword ptr_here, "&here"
   la a0, ptr_here
+  push1
+  j next
+
+make_codeword here, "^here"
+  lw a0, ptr_here
   push1
   j next
 
@@ -210,10 +312,105 @@ make_codeword input_buffer, "input-buffer"
   push2
   j next
 
+make_codeword parse_point, "^parse"
+  lw a0, parse_point
+  push1
+  j next
+
+make_codeword parse_point_size, "#parse"
+  lw a0, parse_point_size
+  push1
+  j next
+
+make_codeword latest_word, "latest-word"
+  lw a0, ptr_latest
+  push1
+  j next
+
+make_codeword new_word, "new-word"
+  lw a0, ptr_new_word
+  push1
+  j next
+
+make_codeword immediate_mode, "immediate-mode"
+  la a0, immediate_mode
+  push1
+  j next
+
 /*
+################################################################################
+#
+# compile words
+#
+################################################################################
+*/
 
+make_codeword header, "header"
+  pop2
+  call header
+  j next
+
+make_codeword add_codeword, "add-codeword"
+  pop1
+  call add_codeword
+  j next
+
+make_codeword end_word, "end-word"
+  call end_word
+  j next
+
+make_codeword immediate, "immediate"
+  lw a0, ptr_latest
+  call set_immediate
+  j next
+
+/*
+################################################################################
+#
+# Dictionary words
+#
+################################################################################
+*/
+
+make_codeword wt_to_name, "wt>name"
+  pop1
+  call wt_to_name
+  push2
+  j next
+
+make_codeword wt_to_xt, "wt>xt"
+  pop1
+  call wt_to_xt
+  push1
+  j next
+
+make_codeword wt_immediate, "immediate?"
+  pop1
+  call wt_immediate
+  push1
+  j next
+
+/*
+################################################################################
+#
+# Utilities
+#
+################################################################################
+*/
+
+make_codeword memcpy, "b-copy"
+  pop3
+  call gmer_memcpy
+  push1
+  j next
+
+
+/*
+################################################################################
+#
 # print constants
-
+#
+################################################################################
 */
 
 /*

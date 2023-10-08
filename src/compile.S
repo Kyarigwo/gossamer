@@ -8,7 +8,7 @@
 #include "common.S"
 
 .global header, end_word, add_codeword, set_immediate
-.global wt_to_name, wt_to_xt, wt_immediate
+.global add_gmer_lit, add_gmer_colon, add_gmer_semicolon, gmer_lit
 
 /*
 ################################################################################
@@ -120,59 +120,43 @@ set_immediate:
   ret
 
 /*
-################################################################################
-#
-# extract information from a word token
-#
-################################################################################
-*/
-/*
 
-# wt_to_name -- gets the name from a name token
-
-arguments:
-  a0: word token
-
-returns:
-  a0: start of name
-  a1: length of name
+# lit -- implimentation of literals
 
 */
-wt_to_name:
-  lb a1, (2 * SIZE)(a0)
-  addi a0, a0, 2 * SIZE + 1
-  ret
-
+make_codeword lit, "lit"
+  lw a0, 0(IP)
+  push1
+  addi IP, IP, SIZE
+  j next
 
 /*
 
-# wt_to_xt -- gets the execution token from a name token
-
-arguments:
-  a0: word token
-
-returns:
-  a0: exection token
+# : -- starts compilation of a word
 
 */
-wt_to_xt:
-  lw a0, SIZE(a0)
-  andi a0, a0, -4   # -4 = 111111100 -- clears flag bits
-  ret
+make_codeword colon, ":"
+  jal x5, sys_push4
+  call word_parse
+  call header
+  la a0, enter
+  call add_codeword
+  sw zero, immediate_mode, t0
+  jal x5, sys_pop4
+  j next
 
 /*
 
-# wt_immediate -- is the immediate flag set?
-
-arguments:
-  a0: word token
-
-returns:
-  a0: 0 if immediate flag is not set.
+# ; -- ends compilation of a word
 
 */
-wt_immediate:
-  lw a0, SIZE(a0)
-  andi a0, a0, 1   # gets bit 0
-  ret
-
+make_codeword semicolon, ";"
+  la a0, codeword_exit
+  lw t0, ptr_here
+  sw a0, 0(t0)
+  addi t0, t0, SIZE
+  sw t0, ptr_here, t1
+  call end_word
+  li t0, 1
+  sw t0, immediate_mode, t1
+  j next
