@@ -307,7 +307,7 @@ returns:
 handle_number:
   jal x5, sys_push4
   call word_to_number
-  bltz a0, 3f
+  beqz a1, 3f
   lw t0, immediate_mode
   beqz t0, 1f
   push1
@@ -408,10 +408,12 @@ arguments:
   a1: size of found word
 
 returns:
-  a0: number converted, or -1 if it fails
+  a0: number converted, or 0 if failed
+  a1: -1 if succeeded, or 0 if failed
 
 variables:
   a0 : pointer to current character
+  a2 : negative flag
   a3 : working value
   a4 : top of string
   a5 : current character/digit
@@ -419,21 +421,34 @@ variables:
 */
 word_to_number:
   li a3, 0        # Intial value
+
   li a6, 10
   add a4, a0, a1  # top of string
+  li a2, 1
+
+  lb a5, 0(a0)
+  li a1, 45
+  bne a5, a1, 1f
+  li a2, -1
+  addi a0, a0, 1
+
 1:
   bgeu a0, a4, 2f # while a0 < a4
   lb a5, 0(a0)
   addi a5, a5, -48  # convert char to decimal digit
+
   bltz a5, 3f       # fail if < 0
   bge a5, a6, 3f     # fail if >= 10
+
   mul a3, a3, a6
   add a3, a3, a5    # a3 = 10 * a3 + a5
   addi a0, a0, 1
   j 1b
 2:
-  mv a0, a3
+  mul a0, a3, a2
+  li a1, -1
   ret
 3:
-  li a0, -1
+  li a0, 0
+  li a1, 0
   ret

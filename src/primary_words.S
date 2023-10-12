@@ -27,8 +27,6 @@ cold_start:
   call add_gmer_goodbye_world
   call add_gmer_dot
 
-  call add_gmer_push_hello_world
-
   call add_gmer_print_wordlist
   call add_gmer_bool_dot
 
@@ -53,7 +51,12 @@ cold_start:
   call add_gmer_interpret
   call add_gmer_find_word
   call add_gmer_word_to_number
+
   call add_gmer_literal
+  lw a0, ptr_latest
+  call set_immediate
+
+
 
 # VM words
   call add_gmer_exit
@@ -71,6 +74,7 @@ cold_start:
   call add_gmer_latest_word
   call add_gmer_new_word
   call add_gmer_immediate_mode
+  call add_gmer_cell
 
 # Compile words
   call add_gmer_header
@@ -78,8 +82,10 @@ cold_start:
   call add_gmer_end_word
   call add_gmer_immediate
   call add_gmer_semicolon
+
   lw a0, ptr_latest
   call set_immediate
+
   call add_gmer_lit
   call add_gmer_colon
   call add_gmer_branch
@@ -88,6 +94,7 @@ cold_start:
 # Dictionary words
   call add_gmer_wt_to_name
   call add_gmer_wt_to_xt
+  call add_gmer_xt_to_wt
   call add_gmer_wt_immediate
 
 # Utilities
@@ -166,7 +173,7 @@ make_codeword find_word, "find-word"
 make_codeword word_to_number, "\">#"
   pop2
   call word_to_number
-  push1
+  push2
   j next
 
 make_codeword literal, "literal"
@@ -216,12 +223,6 @@ make_codeword bye, "bye"
   li a0, 0
   li a7, SYS_EXIT
   ecall
-  j next
-
-make_codeword push_hello_world, "hw"
-  la a1, hello_world_msg_length
-  la a0, hello_world_msg
-  push2
   j next
 
 make_codeword print, "print"
@@ -296,12 +297,12 @@ make_codeword peek_byte, "b?"
 
 make_codeword poke, "!"
   pop2
-  sw a1, 0(a0)
+  sw a0, 0(a1)
   j next
 
 make_codeword poke_byte, "b!"
   pop2
-  sb a1, 0(a0)
+  sb a0, 0(a1)
   j next
 
 /*
@@ -322,8 +323,8 @@ make_codeword here, "^here"
   j next
 
 make_codeword input_buffer, "input-buffer"
-  la a1, input_buffer
-  lw a0, input_buffer_size
+  la a0, input_buffer
+  lw a1, input_buffer_size
   push2
   j next
 
@@ -349,6 +350,11 @@ make_codeword new_word, "new-word"
 
 make_codeword immediate_mode, "immediate-mode"
   la a0, immediate_mode
+  push1
+  j next
+
+make_codeword cell, "cell"
+  li a0, 4
   push1
   j next
 
@@ -396,6 +402,12 @@ make_codeword wt_to_name, "wt>name"
 make_codeword wt_to_xt, "wt>xt"
   pop1
   call wt_to_xt
+  push1
+  j next
+
+make_codeword xt_to_wt, "xt>wt"
+  pop1
+  call xt_to_wt
   push1
   j next
 

@@ -1,15 +1,54 @@
 
 ## Primary words
 
-  bye
-  hw
-  print
-  version
-  hello-word
-  goodbye-word
-  .
-  wordlist
-  bool.
+# vm
+
+  exit
+  execute
+
+# interpret
+
+  refill-input
+  whitespace-parse
+  non-whitespace-parse
+  word-parse
+  char-parse
+  "=
+  interpret
+  find-word
+  ">#
+  literal
+
+# Dictionary
+
+  wt>name
+  wt>xt
+  xt>wt
+  immediate?
+
+# System variables
+
+  &here
+  ^here
+  input-buffer
+  ^parse
+  #parse
+  latest-word
+  new-word
+  immediate-mode
+  cell
+
+# Compile words
+
+  header
+  add-codeword
+  end-word
+  immediate
+  :
+  lit
+  ;
+  branch
+  branch-false
 
 # Memory access
   ?
@@ -17,64 +56,8 @@
   !
   b!
 
-# arithmatic
-  +
-  -
-  *
-
-
-# interpret
-
-refill-input
-whitespace-parse
-non-whitespace-parse
-word-parse
-char-parse
-"=
-interpret
-find-word
-">#
-literal
-
-# vm
-
-exit
-execute
-
-# System variables
-
-&here
-^here
-input-buffer
-^parse
-#parse
-latest-word
-new-word
-immediate-mode
-
-# Compile words
-
-header
-add-codeword
-end-word
-immediate
-:
-;
-lit
-branch
-branch-false
-
-# Dictionary
-
-wt>name
-wt>xt
-immediate?
-
-# Utilities
-
-b-copy
-
 # Stack manipulation
+
   drop
   swap
   nip
@@ -84,4 +67,23 @@ b-copy
   rot
   -rot
 
+# arithmatic
+  +
+  -
+  *
 
+# Utilities
+
+  allot-memory
+  b-copy
+
+# Misc
+
+  bye
+  print
+  version
+  hello-word
+  goodbye-word
+  .
+  wordlist
+  bool.

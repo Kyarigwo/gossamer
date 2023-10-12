@@ -2,7 +2,7 @@
 #include "common.S"
 
 
-.global wt_to_name, wt_to_xt, wt_immediate
+.global wt_to_name, wt_to_xt, wt_immediate, xt_to_wt
 /*
 ################################################################################
 #
@@ -26,6 +26,33 @@ wt_to_name:
   lb a1, (2 * SIZE)(a0)
   addi a0, a0, 2 * SIZE + 1
   ret
+
+/*
+
+# xt>wt --gets the word token for this execution token
+
+arguments:
+  a0: xt
+
+returns:
+  a0: wt if found, or 0 if not
+
+*/
+xt_to_wt:
+  mv a1, a0
+  li a2, 5
+loop:
+  lw a3, 0(a0)
+  beq a1, a3, found
+  addi a0, a0, -SIZE
+  addi a2, a2, -1
+  bgt a2, x0, loop
+  li a0, 0
+  ret
+found:
+  addi a0, a0, -SIZE
+  ret
+
 
 
 /*

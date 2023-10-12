@@ -1,16 +1,33 @@
-: ( 41 char-parse ; immediate
+: ( 41 char-parse drop drop ; immediate
 ( now we have comments )
-: -- 10 char-parse ; immediate
+: -- 10 char-parse drop drop ; immediate
 -- now we have end of line comments
 
-: cell 4 ;
-: allot ^here + &here ! ;
-: cells cell * ;
-: , ^here ! cell allot ;
-: b, ^here b! 1 allot ;
-: 1+ 1 + ;
-: gw goodbye-world ;
+-- data area allocation
+: allot ( bytes -- ) ^here + &here ! ;
+: cells ( u -- cell * u ) cell * ;
+: ,  ( w -- ) ^here ! cell allot ;
+: b, ( b -- ) ^here b! 1 allot ;
 
+-- boolean constants
+: true ( -- f ) -1 ;
+: false ( -- f ) 0 ;
 
+-- switchs
+: on ( addr -- ) true swap ! ;
+: off ( addr -- ) false swap ! ;
 
+-- turn immediate mode off in the middle of a definition
+: [ ( -- ) immediate-mode on ; immediate
+: ] ( -- ) immediate-mode off ;
 
+-- primary flow control words
+: ` ( -- ) word-parse find-word drop ;
+: `branch-false ( -- ) [ ` branch-false ] literal ;
+: `branch ( -- ) [ ` branch ] literal ;
+
+-- if else endif statements
+: if ( -- source-forward )  `branch-false , ^here 0 , ; immediate
+: else ( source-forward -- source-forward )
+            `branch , ^here 0 , swap ^here swap ! ; immediate
+: endif ( source-forward -- ) ^here swap ! ; immediate
