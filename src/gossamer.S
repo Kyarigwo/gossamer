@@ -72,7 +72,7 @@ _start:
 
 
 number_to_word:
-  jal x5,  sys_push8
+  sys_push8
 
   # setup
   mv s2, a0
@@ -107,7 +107,7 @@ number_to_word:
   addi s5, s5, 1       # output++i
   mv   a0, s5          # a0 = output
 
-  jal x5, sys_pop8
+  sys_pop8
   ret
 
 push_char_format_buffer:

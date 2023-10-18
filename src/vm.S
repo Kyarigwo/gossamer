@@ -13,16 +13,16 @@
 */
 
 enter:
-  pushr1 IP
-  addi IP, t0, SIZE
+  rs_pushIP
+  addi IP, t1, SIZE
 next:
-  lw t0, 0(IP)
-  lw t1, 0(t0)
+  lw t1, 0(IP)
+  lw t2, 0(t1)
   addi IP, IP, SIZE
-  jr t1
+  jr t2
 
 code_exit:
-  popr1 IP
+  rs_popIP
   j next
 
 .data
@@ -41,13 +41,13 @@ codeword_exit:
 .text
 
 execute:
-  jal x5, sys_push4
+  sys_push4
   sw a0, execute_word, t0
-  pushr1 IP
+  rs_pushIP
   la IP, execute_word
   j next
 
 cont:
-  popr1 IP
-  jal x5, sys_pop4
+  rs_popIP
+  sys_pop4
   ret

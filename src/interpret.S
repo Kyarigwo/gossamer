@@ -127,12 +127,12 @@ returns:
 
 */
 word_parse:
-  jal x5, sys_push4         #save ra etc
+  sys_push4         #save ra etc
 
   call whitespace_parse
   call non_whitespace_parse
 
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 /*
@@ -216,7 +216,7 @@ returns:
 
 */
 interpret:
-  jal x5, sys_push4
+  sys_push4
 
 1:
   call word_parse
@@ -232,10 +232,12 @@ interpret:
   mv a1, s1
   call handle_number    # try to handle like  a number
   bnez a0, 1b           # if a0 != 0 next word
-
+  mv a0, s0
+  mv a1, s1
+  call print
   call print_question_mark # bad end
   call print_newline
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 2:                    # good end
@@ -243,13 +245,13 @@ interpret:
   beqz t0, 3f
   call print_ok
   call print_newline
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 3:
   call print_compiled
   call print_newline
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 /*
@@ -265,7 +267,7 @@ returns:
 
 */
 handle_word:
-  jal x5, sys_push4
+  sys_push4
   call find_word
   beqz a1, 3f           # word not in dicationary
 
@@ -285,11 +287,11 @@ handle_word:
   sw t0, ptr_here, t1
 2:
   li a0, 1
-  jal x5, sys_pop4
+  sys_pop4
   ret
 3:
   li a0, 0
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 /*
@@ -305,23 +307,23 @@ returns:
 
 */
 handle_number:
-  jal x5, sys_push4
+  sys_push4
   call word_to_number
   beqz a1, 3f
   lw t0, immediate_mode
   beqz t0, 1f
-  push1
+  ds_push1
   j 2f
 1:
   call literal
 2:
   li a0, 1
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 3:
   li a0, 0
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 /*
@@ -358,7 +360,7 @@ returns:
 
 */
 find_word:
-  jal x5, sys_push4
+  sys_push4
 
   mv s0, a0           # save target
   mv s1, a1
@@ -388,13 +390,13 @@ find_word:
   beqz t0, 3f
   li a1, 1
 3:
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 2:
   li a1, 0
   li a0, 0            # return 0
-  jal x5, sys_pop4
+  sys_pop4
   ret
 /*
 

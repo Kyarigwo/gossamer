@@ -53,8 +53,28 @@ t1 : second jump location
 #
 ###############################################################################
 */
-
 /*
+################################################################################
+#
+# System stack
+#
+################################################################################
+*/
+.macro sys_push4
+  jal x5, l_sys_push4
+.endm
+
+.macro sys_pop4
+  jal x5, l_sys_pop4
+.endm
+
+.macro sys_push8
+  jal x5, l_sys_push8
+.endm
+
+.macro sys_pop8
+  jal x5, l_sys_pop8
+.endm
 
 /*
 ################################################################################
@@ -64,14 +84,12 @@ t1 : second jump location
 ################################################################################
 */
 
-.macro pushr1 reg0
-  addi RS, RS, -(1 * SIZE)
-  sw \reg0, (0 * SIZE)(RS)
+.macro rs_pushIP
+  jal x5, l_rs_pushIP
 .endm
 
-.macro popr1 reg0
-  lw \reg0, (0 * SIZE)(RS)
-  addi RS, RS, (1 * SIZE)
+.macro rs_popIP
+  jal x5, l_rs_popIP
 .endm
 
 
@@ -83,89 +101,57 @@ t1 : second jump location
 ################################################################################
 */
 
+/*
 
+# push/pop a0
 
-.macro push1
-  addi DS, DS, -(1 * SIZE)
-  sw a0, (0 * SIZE)(DS)
+*/
+
+.macro ds_push1
+  jal x5, l_ds_push1
 .endm
 
-.macro pop1
-  lw a0, (0 * SIZE)(DS)
-  addi DS,  DS, (1 * SIZE)
+.macro ds_pop1
+  jal x5, l_ds_pop1
 .endm
 
 /*
 
-#  push a0 and a1 onto the stack, with order a0 a1
+#  push/pop a0 a1
 
 */
-.macro push2
-  addi DS, DS, -(2 * SIZE)
-  sw a1, (0 * SIZE)(DS)
-  sw a0, (1 * SIZE)(DS)
+.macro ds_push2
+  jal x5, l_ds_push2
+.endm
+
+.macro ds_pop2
+  jal x5, l_ds_pop2
 .endm
 
 /*
 
-# pop a0 and a1 of of the stack, with order a0, a1
+# push/pop a0, a1, a2
 
 */
-.macro pop2
-  lw a1, (0 * SIZE)(DS)
-  lw a0, (1 * SIZE)(DS)
-  addi DS,  DS, (2 * SIZE)
+.macro ds_push3
+  jal x5, l_ds_push3
+.endm
+
+.macro ds_pop3
+  jal x5, l_ds_pop3
 .endm
 
 /*
 
-# push a0, a1, a2 onto the stack, with order a0 a1 a2
+# push/pop a0 a1 a2 a3
 
 */
-.macro push3
-  addi DS, DS, -(3 * SIZE)
-  sw a2, (0 * SIZE)(DS)
-  sw a1, (1 * SIZE)(DS)
-  sw a0, (2 * SIZE)(DS)
+.macro ds_push4
+  jal x5, l_ds_push4
 .endm
 
-/*
-
-# pop a0, a1, a2 off the stack, with order a0 a1 a2
-
-*/
-.macro pop3
-  lw a2, (0 * SIZE)(DS)
-  lw a1, (1 * SIZE)(DS)
-  lw a0, (2 * SIZE)(DS)
-  addi DS,  DS, (3 * SIZE)
-.endm
-
-
-/*
-
-# push a0, a1, a2, a3 onto the stack, with order a0 a1 a2 a3
-
-*/
-.macro push4
-  addi DS, DS, -(4 * SIZE)
-  sw a3, (0 * SIZE)(DS)
-  sw a2, (1 * SIZE)(DS)
-  sw a1, (2 * SIZE)(DS)
-  sw a0, (3 * SIZE)(DS)
-.endm
-
-/*
-
-# pop a0, a1, a2, a3 off the stack, with order a0 a1 a2 a3
-
-*/
-.macro pop4
-  lw a3, (0 * SIZE)(DS)
-  lw a2, (1 * SIZE)(DS)
-  lw a1, (2 * SIZE)(DS)
-  lw a0, (3 * SIZE)(DS)
-  addi DS, DS, (4 * SIZE)
+.macro ds_pop4
+  jal x5, l_ds_pop4
 .endm
 
 /*
@@ -215,14 +201,14 @@ print_\label:
 
 .macro make_codeword label, value
 add_gmer_\label:
-  jal x5, sys_push4
+  sys_push4
   la a0, str_msg_\label
   la a1, str_msg_length_\label
   call header
   la a0, gmer_\label
   call add_codeword
   call end_word
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 .section .rodata

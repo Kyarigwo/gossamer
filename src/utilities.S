@@ -1,55 +1,6 @@
 #include "common.S"
 
-.global sys_push4, sys_pop4
-.global sys_push8, sys_pop8
 .global gmer_memcpy, align_4byte
-
-sys_push4:
-  addi sp, sp, -4*SIZE
-  sw ra, 0(sp)
-  sw s0, SIZE(sp)
-  sw s1, 2*SIZE(sp)
-  sw s2, 3*SIZE(sp)
-  jr x5   # jump to x5
-
-sys_pop4:
-  lw ra, 0(sp)
-  lw s0, SIZE(sp)
-  lw s1, 2*SIZE(sp)
-  lw s2, 3*SIZE(sp)
-  addi sp, sp, 4*SIZE
-  jr x5  # jump to x5
-
-sys_push8:
-  addi sp, sp, -8*SIZE
-
-  sw ra, 0(sp)
-  sw s0, SIZE(sp)
-  sw s1, 2*SIZE(sp)
-  sw s2, 3*SIZE(sp)
-
-  sw s3, 4*SIZE(sp)
-  sw s4, 5*SIZE(sp)
-  sw s5, 6*SIZE(sp)
-  sw s6, 7*SIZE(sp)
-
-  jr x5   # jump to x5
-
-sys_pop8:
-
-  lw ra, 0(sp)
-  lw s0, SIZE(sp)
-  lw s1, 2*SIZE(sp)
-  lw s2, 3*SIZE(sp)
-
-  lw s3, 4*SIZE(sp)
-  lw s4, 5*SIZE(sp)
-  lw s5, 6*SIZE(sp)
-  lw s6, 7*SIZE(sp)
-
-  addi sp, sp, 8*SIZE
-  jr x5  # jump to x5
-
 
 /*
 

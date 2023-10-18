@@ -13,6 +13,10 @@
 : true ( -- f ) -1 ;
 : false ( -- f ) 0 ;
 
+-- abbreviations
+: 1+ ( n -- n ) 1 + ;
+: 1- ( n -- n) 1 - ;
+
 -- switchs
 : on ( addr -- ) true swap ! ;
 : off ( addr -- ) false swap ! ;
@@ -22,12 +26,20 @@
 : ] ( -- ) immediate-mode off ;
 
 -- primary flow control words
-: ` ( -- ) word-parse find-word drop ;
-: `branch-false ( -- ) [ ` branch-false ] literal ;
-: `branch ( -- ) [ ` branch ] literal ;
+: ` ( -- xt ) word-parse find-word drop ;
+: [`] ( -- ) ` literal ; immediate
+
 
 -- if else endif statements
-: if ( -- source-forward )  `branch-false , ^here 0 , ; immediate
+: if ( -- source-forward )  [`] branch-false , ^here 0 , ; immediate
 : else ( source-forward -- source-forward )
-            `branch , ^here 0 , swap ^here swap ! ; immediate
+            [`] branch , ^here 0 , swap ^here swap ! ; immediate
 : endif ( source-forward -- ) ^here swap ! ; immediate
+
+: ascii ( -- c ) word-parse drop b? ;
+: [ascii]   ascii literal ; immediate
+
+
+: ." [ascii] " char-parse 1- print ;
+
+-- : " [ascii] " char-parse 1-

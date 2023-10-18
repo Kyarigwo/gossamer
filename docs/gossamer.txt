@@ -1,4 +1,10 @@
 
+Debugging
+
+qemu-riscv32 -g 1234 gossamer
+riscv64-unknown-elf-gdb -tui ./gossamer
+
+
 ## Primary words
 
 # vm

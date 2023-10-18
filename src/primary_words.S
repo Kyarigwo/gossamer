@@ -17,7 +17,7 @@
 */
 
 cold_start:
-  jal x5, sys_push4
+  sys_push4
 
 #
   call add_gmer_bye
@@ -53,10 +53,6 @@ cold_start:
   call add_gmer_word_to_number
 
   call add_gmer_literal
-  lw a0, ptr_latest
-  call set_immediate
-
-
 
 # VM words
   call add_gmer_exit
@@ -110,7 +106,7 @@ cold_start:
   call add_gmer_rot
   call add_gmer_minus_rot
 
-  jal x5, sys_pop4
+  sys_pop4
   ret
 
 
@@ -130,34 +126,34 @@ lit_codeword:
 
 make_codeword refill_input, "refill-input"
   call refill_input
-  push2
+  ds_push2
   j next
 
 make_codeword whitespace_parse, "whitespace-parse"
   call whitespace_parse
-  push2
+  ds_push2
   j next
 
 make_codeword non_whitespace_parse, "non-whitespace-parse"
   call non_whitespace_parse
-  push2
+  ds_push2
   j next
 
 make_codeword word_parse, "word-parse"
   call word_parse
-  push2
+  ds_push2
   j next
 
 make_codeword char_parse, "char-parse"
-  pop1
+  ds_pop1
   call char_parse
-  push2
+  ds_push2
   j next
 
 make_codeword string_eq, "\"="
-  pop4
+  ds_pop4
   call string_eq
-  push1
+  ds_push1
   j next
 
 make_codeword interpret, "interpret"
@@ -165,19 +161,19 @@ make_codeword interpret, "interpret"
   j next
 
 make_codeword find_word, "find-word"
-  pop2
+  ds_pop2
   call find_word
-  push2
+  ds_push2
   j next
 
 make_codeword word_to_number, "\">#"
-  pop2
+  ds_pop2
   call word_to_number
-  push2
+  ds_push2
   j next
 
 make_codeword literal, "literal"
-  pop1
+  ds_pop1
   call literal
   j next
 
@@ -193,7 +189,7 @@ make_codeword exit, "exit"
   j code_exit
 
 make_codeword execute, "execute"
-  pop1
+  ds_pop1
   j execute
   j next
 
@@ -206,9 +202,9 @@ make_codeword execute, "execute"
 */
 
 make_codeword allot_memory, "allot-memory"
-  pop1
+  ds_pop1
   call allot_memory
-  push1
+  ds_push1
   j next
 
 /*
@@ -226,7 +222,7 @@ make_codeword bye, "bye"
   j next
 
 make_codeword print, "print"
-  pop2
+  ds_pop2
   call print
   j next
 
@@ -243,14 +239,14 @@ make_codeword goodbye_world, "goodbye-world"
   j next
 
 make_codeword dot, "."
-  pop1
+  ds_pop1
   call number_to_word
   call print
   call print_space
   j next
 
 make_codeword print_wordlist, "wordlist"
-  jal x5, sys_push4
+  sys_push4
   lw s0, ptr_latest
 1:
   beqz s0, 2f
@@ -261,19 +257,19 @@ make_codeword print_wordlist, "wordlist"
   lw s0, 0(s0)
   j 1b
 2:
-  jal x5, sys_pop4
+  sys_pop4
   j next
 
 make_codeword bool_dot, "bool."
-  jal x5, sys_push4
-  pop1
+  sys_push4
+  ds_pop1
   beqz a0, 1f
   call print_true
   j 2f
 1:
   call print_false
 2:
-  jal x5, sys_pop4
+  sys_pop4
   j next
 
 /*
@@ -284,24 +280,24 @@ make_codeword bool_dot, "bool."
 ################################################################################
 */
 make_codeword peek, "?"
-  pop1
+  ds_pop1
   lw a0, 0(a0)
-  push1
+  ds_push1
   j next
 
 make_codeword peek_byte, "b?"
-  pop1
+  ds_pop1
   lb a0, 0(a0)
-  push1
+  ds_push1
   j next
 
 make_codeword poke, "!"
-  pop2
+  ds_pop2
   sw a0, 0(a1)
   j next
 
 make_codeword poke_byte, "b!"
-  pop2
+  ds_pop2
   sb a0, 0(a1)
   j next
 
@@ -314,48 +310,48 @@ make_codeword poke_byte, "b!"
 */
 make_codeword ptr_here, "&here"
   la a0, ptr_here
-  push1
+  ds_push1
   j next
 
 make_codeword here, "^here"
   lw a0, ptr_here
-  push1
+  ds_push1
   j next
 
 make_codeword input_buffer, "input-buffer"
   la a0, input_buffer
   lw a1, input_buffer_size
-  push2
+  ds_push2
   j next
 
 make_codeword parse_point, "^parse"
   lw a0, parse_point
-  push1
+  ds_push1
   j next
 
 make_codeword parse_point_size, "#parse"
   lw a0, parse_point_size
-  push1
+  ds_push1
   j next
 
 make_codeword latest_word, "latest-word"
   lw a0, ptr_latest
-  push1
+  ds_push1
   j next
 
 make_codeword new_word, "new-word"
   lw a0, ptr_new_word
-  push1
+  ds_push1
   j next
 
 make_codeword immediate_mode, "immediate-mode"
   la a0, immediate_mode
-  push1
+  ds_push1
   j next
 
 make_codeword cell, "cell"
   li a0, 4
-  push1
+  ds_push1
   j next
 
 /*
@@ -367,12 +363,12 @@ make_codeword cell, "cell"
 */
 
 make_codeword header, "header"
-  pop2
+  ds_pop2
   call header
   j next
 
 make_codeword add_codeword, "add-codeword"
-  pop1
+  ds_pop1
   call add_codeword
   j next
 
@@ -394,27 +390,27 @@ make_codeword immediate, "immediate"
 */
 
 make_codeword wt_to_name, "wt>name"
-  pop1
+  ds_pop1
   call wt_to_name
-  push2
+  ds_push2
   j next
 
 make_codeword wt_to_xt, "wt>xt"
-  pop1
+  ds_pop1
   call wt_to_xt
-  push1
+  ds_push1
   j next
 
 make_codeword xt_to_wt, "xt>wt"
-  pop1
+  ds_pop1
   call xt_to_wt
-  push1
+  ds_push1
   j next
 
 make_codeword wt_immediate, "immediate?"
-  pop1
+  ds_pop1
   call wt_immediate
-  push1
+  ds_push1
   j next
 
 /*
@@ -426,9 +422,9 @@ make_codeword wt_immediate, "immediate?"
 */
 
 make_codeword memcpy, "b-copy"
-  pop3
+  ds_pop3
   call gmer_memcpy
-  push1
+  ds_push1
   j next
 
 
@@ -491,21 +487,21 @@ print_literal false, "false\n"
 */
 
 make_codeword plus, "+"
-  pop2
+  ds_pop2
   add a0, a0, a1
-  push1
+  ds_push1
   j next
 
 make_codeword minus, "-"
-  pop2
+  ds_pop2
   sub a0, a0, a1
-  push1
+  ds_push1
   j next
 
 make_codeword times, "*"
-  pop2
+  ds_pop2
   mul a0, a1, a0
-  push1
+  ds_push1
   j next
 
 /*
@@ -517,57 +513,57 @@ make_codeword times, "*"
 */
 
 make_codeword drop, "drop"
-  pop1
+  ds_pop1
   j next
 
 make_codeword swap, "swap"
-  pop2
+  ds_pop2
   mv t0, a0
   mv a0, a1
   mv a1, t0
-  push2
+  ds_push2
   j next
 
 make_codeword nip, "nip"
-  pop2
+  ds_pop2
   mv a0, a1
-  push1
+  ds_push1
   j next
 
 make_codeword dup, "dup"
-  pop1
+  ds_pop1
   mv a1, a0
-  push2
+  ds_push2
   j next
 
 make_codeword over, "over"
-  pop2
+  ds_pop2
   mv a2, a0
-  push3
+  ds_push3
   j next
 
 make_codeword tuck, "tuck"
-  pop2
+  ds_pop2
   mv a2, a1
   mv a1, a0
   mv a0, a2
-  push3
+  ds_push3
   j next
 
 make_codeword rot, "rot"
-  pop3
+  ds_pop3
   mv t0, a0
   mv a0, a1
   mv a1, a2
   mv a2, t0
-  push3
+  ds_push3
   j next
 
 make_codeword minus_rot, "-rot"
-  pop3
+  ds_pop3
   mv t0, a2
   mv a2, a1
   mv a1, a0
   mv a0, t0
-  push3
+  ds_push3
   j next

@@ -52,7 +52,7 @@ n * SIZE: [ codeword     ]
 
 header:
 
-  jal x5, sys_push4
+  sys_push4
 
   lw s0, ptr_here           # here
   lw t0, ptr_latest         # latest
@@ -72,7 +72,7 @@ header:
   sw a0, SIZE(s0)
   sw a0, ptr_here, t0       # here = a0
 
-  jal x5, sys_pop4
+  sys_pop4
 
   ret
 
@@ -127,7 +127,7 @@ set_immediate:
 */
 make_codeword lit, "lit"
   lw a0, 0(IP)
-  push1
+  ds_push1
   addi IP, IP, SIZE
   j next
 
@@ -137,13 +137,13 @@ make_codeword lit, "lit"
 
 */
 make_codeword colon, ":"
-  jal x5, sys_push4
+  sys_push4
   call word_parse
   call header
   la a0, enter
   call add_codeword
   sw zero, immediate_mode, t0
-  jal x5, sys_pop4
+  sys_pop4
   j next
 
 /*
@@ -170,7 +170,7 @@ make_codeword branch, "branch"
 
 make_codeword branch0, "branch-false"
   lw a1, 0(IP)
-  pop1
+  ds_pop1
   addi IP, IP, SIZE
   bnez a0, 1f
   mv IP, a1
