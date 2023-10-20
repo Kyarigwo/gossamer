@@ -6,6 +6,8 @@
 .global l_ds_push2, l_ds_pop2
 .global l_ds_push3, l_ds_pop3
 .global l_ds_push4, l_ds_pop4
+.global l_ds_push5, l_ds_pop5
+.global l_ds_push6, l_ds_pop6
 .global l_rs_pushIP, l_rs_popIP
 
 /*
@@ -141,6 +143,55 @@ l_ds_pop4:
   lw a0, (3 * SIZE)(DS)
   addi DS, DS, (4 * SIZE)
   jr x5
+
+/*
+
+# push/pop  a0 a1 a2 a3 a4
+
+*/
+l_ds_push5:
+  addi DS, DS, -(5 * SIZE)
+  sw a4, (0 * SIZE)(DS)
+  sw a3, (1 * SIZE)(DS)
+  sw a2, (2 * SIZE)(DS)
+  sw a1, (3 * SIZE)(DS)
+  sw a0, (4 * SIZE)(DS)
+  jr x5
+
+l_ds_pop5:
+  lw a4, (0 * SIZE)(DS)
+  lw a3, (1 * SIZE)(DS)
+  lw a2, (2 * SIZE)(DS)
+  lw a1, (3 * SIZE)(DS)
+  lw a0, (4 * SIZE)(DS)
+  addi DS, DS, (5 * SIZE)
+  jr x5
+
+/*
+
+# push/pop  a0 a1 a2 a3 a4 a5
+
+*/
+l_ds_push6:
+  addi DS, DS, -(6 * SIZE)
+  sw a5, (0 * SIZE)(DS)
+  sw a4, (1 * SIZE)(DS)
+  sw a3, (2 * SIZE)(DS)
+  sw a2, (3 * SIZE)(DS)
+  sw a1, (4 * SIZE)(DS)
+  sw a0, (5 * SIZE)(DS)
+  jr x5
+
+l_ds_pop6:
+  lw a5, (0 * SIZE)(DS)
+  lw a4, (1 * SIZE)(DS)
+  lw a3, (2 * SIZE)(DS)
+  lw a2, (3 * SIZE)(DS)
+  lw a1, (4 * SIZE)(DS)
+  lw a0, (5 * SIZE)(DS)
+  addi DS, DS, (6 * SIZE)
+  jr x5
+
 
 /*
 ################################################################################

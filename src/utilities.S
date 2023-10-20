@@ -12,7 +12,7 @@ arguments:
   a2: address to copy to
 
 returns:
-  a0: location 1 byte pass end of copied data
+  a0: location 1 byte past end of copied data
 
 */
 gmer_memcpy:

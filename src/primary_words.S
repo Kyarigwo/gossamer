@@ -23,13 +23,9 @@ cold_start:
   call add_gmer_bye
   call add_gmer_print
   call add_gmer_version
-  call add_gmer_hello_world
-  call add_gmer_goodbye_world
   call add_gmer_dot
 
   call add_gmer_print_wordlist
-  call add_gmer_bool_dot
-
 
   call add_gmer_peek
   call add_gmer_peek_byte
@@ -37,9 +33,15 @@ cold_start:
   call add_gmer_poke
   call add_gmer_poke_byte
 
+# Arithmatic
+
   call add_gmer_plus
   call add_gmer_minus
   call add_gmer_times
+
+# Comparison
+
+
 
 # interpret words
   call add_gmer_refill_input
@@ -83,6 +85,7 @@ cold_start:
   call set_immediate
 
   call add_gmer_lit
+  call add_gmer_two_lit
   call add_gmer_colon
   call add_gmer_branch
   call add_gmer_branch0
@@ -94,7 +97,7 @@ cold_start:
   call add_gmer_wt_immediate
 
 # Utilities
-  call add_gmer_memcpy
+  call add_gmer_b_memcpy
 
 # Stack manipulation
   call add_gmer_drop
@@ -105,6 +108,16 @@ cold_start:
   call add_gmer_tuck
   call add_gmer_rot
   call add_gmer_minus_rot
+
+# stack manipulation 2
+  call add_gmer_two_drop
+  call add_gmer_two_swap
+  call add_gmer_two_nip
+  call add_gmer_two_dup
+  call add_gmer_two_over
+  call add_gmer_two_tuck
+  call add_gmer_two_rot
+  call add_gmer_two_minus_rot
 
   sys_pop4
   ret
@@ -230,14 +243,6 @@ make_codeword version, "version"
   call print_version
   j next
 
-make_codeword hello_world, "hello-world"
-  call print_hello_world
-  j next
-
-make_codeword goodbye_world, "goodbye-world"
-  call print_goodbye_world
-  j next
-
 make_codeword dot, "."
   ds_pop1
   call number_to_word
@@ -260,17 +265,6 @@ make_codeword print_wordlist, "wordlist"
   sys_pop4
   j next
 
-make_codeword bool_dot, "bool."
-  sys_push4
-  ds_pop1
-  beqz a0, 1f
-  call print_true
-  j 2f
-1:
-  call print_false
-2:
-  sys_pop4
-  j next
 
 /*
 ################################################################################
@@ -421,7 +415,7 @@ make_codeword wt_immediate, "immediate?"
 ################################################################################
 */
 
-make_codeword memcpy, "b-copy"
+make_codeword b_memcpy, "b-copy"
   ds_pop3
   call gmer_memcpy
   ds_push1
@@ -456,8 +450,6 @@ print:
   ecall
   ret
 
-print_literal pipe "|"
-
 print_literal newline, "\n"
 
 print_literal space, " "
@@ -469,14 +461,6 @@ print_literal compiled, "compiled"
 print_literal question_mark, "?"
 
 print_literal version, "Version 1.0\n"
-
-print_literal goodbye_world, "Goodbye World!\n"
-
-print_literal hello_world, "Hello World!\n"
-
-print_literal true, "true\n"
-
-print_literal false, "false\n"
 
 /*
 ################################################################################
@@ -503,6 +487,18 @@ make_codeword times, "*"
   mul a0, a1, a0
   ds_push1
   j next
+
+/*
+################################################################################
+#
+# Comparison
+#
+################################################################################
+*/
+
+make_codeword equals, "="
+  ds_pop2
+
 
 /*
 ################################################################################
@@ -566,4 +562,89 @@ make_codeword minus_rot, "-rot"
   mv a1, a0
   mv a0, t0
   ds_push3
+  j next
+
+/*
+################################################################################
+#
+# Double stack manipulation
+#
+################################################################################
+*/
+
+make_codeword two_drop, "2drop"
+  ds_pop2
+  j next
+
+make_codeword two_swap, "2swap"
+  ds_pop4
+  mv t0, a0
+  mv t1, a1
+  mv a0, a2
+  mv a1, a3
+  mv a2, t0
+  mv a3, t1
+  ds_push4
+  j next
+
+make_codeword two_nip, "2nip"
+  ds_pop4
+  mv a0, a2
+  mv a1, a3
+  ds_push4
+  j next
+
+make_codeword two_dup, "2dup"
+  ds_pop2
+  mv a2, a0
+  mv a3, a1
+  ds_push4
+  j next
+
+make_codeword two_over, "2over"
+  ds_pop4
+  mv a4, a0
+  mv a5, a1
+  ds_push6
+  j next
+
+make_codeword two_tuck, "2tuck"
+  ds_pop4
+  mv a4, a2
+  mv a5, a3
+  mv a2, a0
+  mv a3, a1
+  mv a0, a4
+  mv a1, a5
+  ds_push6
+  j next
+
+make_codeword two_rot, "2rot"
+  ds_pop6
+  mv t0, a0
+  mv t1, a1
+  mv a0, a2
+  mv a1, a3
+  mv a2, a4
+  mv a3, a5
+  mv a4, t0
+  mv a5, t1
+  ds_push6
+  j next
+
+make_codeword two_minus_rot, "-2rot"
+  ds_pop6
+  mv t0, a4
+  mv t1, a5
+
+  mv a4, a2
+  mv a5, a3
+
+  mv a2, a0
+  mv a3, a1
+
+  mv a0, t0
+  mv a1, t1
+
+  ds_push6
   j next

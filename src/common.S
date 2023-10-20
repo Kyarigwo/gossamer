@@ -35,9 +35,13 @@ t1 : second jump location
 
 // Sys call data
 #define SYS_MMAP 222
+#define SYS_MUNMAP 215
 #define SYS_EXIT 93
 #define SYS_WRITE 64
 #define SYS_READ 63
+#define SYS_OPENAT 56
+#define SYS_CLOSE 57
+#define SYS_LSEEK 62
 
 // Data for mmap
 #define PAGESIZE 4096  // page size
@@ -45,6 +49,9 @@ t1 : second jump location
 #define PROT_WRITE 0x2
 #define MAP_ANONYMOUS 0x20
 #define MAP_PRIVATE 0x02
+
+#define AT_FDCW -100
+#define O_RDONLY  0
 
 /*
 ###############################################################################
@@ -152,6 +159,32 @@ t1 : second jump location
 
 .macro ds_pop4
   jal x5, l_ds_pop4
+.endm
+
+/*
+
+# push/pop a0 a1 a2 a3 a4
+
+*/
+.macro ds_push5
+  jal x5, l_ds_push5
+.endm
+
+.macro ds_pop5
+  jal x5, l_ds_pop5
+.endm
+
+/*
+
+# push/pop a0 a1 a2 a3 a4 a5
+
+*/
+.macro ds_push6
+  jal x5, l_ds_push6
+.endm
+
+.macro ds_pop6
+  jal x5, l_ds_pop6
 .endm
 
 /*

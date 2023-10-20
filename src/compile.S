@@ -9,7 +9,7 @@
 
 .global header, end_word, add_codeword, set_immediate
 .global add_gmer_lit, add_gmer_colon, add_gmer_semicolon, gmer_lit
-.global add_gmer_branch, add_gmer_branch0
+.global add_gmer_branch, add_gmer_branch0, add_gmer_two_lit
 
 /*
 ################################################################################
@@ -129,6 +129,18 @@ make_codeword lit, "lit"
   lw a0, 0(IP)
   ds_push1
   addi IP, IP, SIZE
+  j next
+
+/*
+
+# 2lit -- implimentation of double literals
+
+*/
+make_codeword two_lit, "2lit"
+  lw a1, 0(IP)
+  lw a0, (SIZE)(IP)
+  ds_push2
+  addi IP, IP, 2*SIZE
   j next
 
 /*

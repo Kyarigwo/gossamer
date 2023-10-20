@@ -28,9 +28,16 @@
 -- primary flow control words
 : ` ( -- xt ) word-parse find-word drop ;
 : [`] ( -- ) ` literal ; immediate
-
+: 2literal [`] 2lit , , , ;
 
 -- if else endif statements
+
+: source-forward [`] branch , ^here 0 , ;
+: [source-forward] source-forward ; immediate
+
+: sink-forward ^here swap ! ;
+: [sink-forward] sink-forward ; immediate
+
 : if ( -- source-forward )  [`] branch-false , ^here 0 , ; immediate
 : else ( source-forward -- source-forward )
             [`] branch , ^here 0 , swap ^here swap ! ; immediate
@@ -42,4 +49,12 @@
 
 : ." [ascii] " char-parse 1- print ;
 
--- : " [ascii] " char-parse 1-
+: ]"[  [ascii] " char-parse 1- tuck ^here b-copy drop ^here swap dup allot ;
+: " source-forward ]"[ rot sink-forward 2literal ; immediate
+
+: hello-world  " Hello World!" print ;
+: goodbye-world " goodbye world!" print ;
+
+: print-true " true" print ;
+: print-false " false" print ;
+: bool. if print-true else print-false endif ;
