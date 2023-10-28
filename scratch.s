@@ -1,30 +1,42 @@
 
-  la a0, hello_world
+  li a0, 5
   li a1, 5
-  la a2, target
-  call gmer_memcpy
+  beqz a1, dzero
+  # save d
+  mv t1, a1
+  # a2 = a0 / a1
+  div a2, a0, a1
+  # a3 = a0 % a1
+  rem a3, a0, a1
+
+  # a4 signum rem
+  mv a0, a3
+  jal t0, signum
+  mv a4, a0
+
+  # a5 - signum d
+  mv a0, t1
+  jal t0, signum
+  neg a5, a0
+
+  xor a4, a4, a5
+  snez a4, a4
+
+  sub a1, a2, a4
+  mul a2, a4, t1
+  add a2, a2, a3
+
+  li a0, 10
+  ecall
+dzero:
+  li a1, 0
+  li a2, 0
   li a0, 10
   ecall
 
-
-gmer_memcpy:
-2:
-  beqz a1, 1f
-  lb a3, 0(a0)
-  sb a3, 0(a2)
-  addi a0, a0, 1
-  addi a2, a2, 1
-  addi a1, a1, -1
-  j 2b
-1:
-  ret
-
-
-.data
-
-hello_world:
-  .asciiz "hello world!"
-end_hello_world:
-  .word 1
-target:
-  .space 100
+signum:
+  sgtz a1, a0
+  sltz a0, a0
+  neg a0, a0
+  add a0, a0, a1
+  jr t0

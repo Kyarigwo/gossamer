@@ -237,6 +237,8 @@ interpret:
   call print
   call print_question_mark # bad end
   call print_newline
+  li t0, 1
+  sw t0, immediate_mode, t1
   sys_pop4
   ret
 

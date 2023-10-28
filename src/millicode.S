@@ -83,6 +83,11 @@ l_ds_push1:
   jr x5
 
 l_ds_pop1:
+
+  lw t1, data_stack_top
+  addi t1, t1, -(1 * SIZE)
+  blt t1, DS, stack_underflow
+
   lw a0, (0 * SIZE)(DS)
   addi DS,  DS, (1 * SIZE)
   jr x5
@@ -99,6 +104,11 @@ l_ds_push2:
   jr x5
 
 l_ds_pop2:
+
+  lw t1, data_stack_top
+  addi t1, t1, -(2 * SIZE)
+  blt t1, DS, stack_underflow
+
   lw a1, (0 * SIZE)(DS)
   lw a0, (1 * SIZE)(DS)
   addi DS,  DS, (2 * SIZE)
@@ -110,6 +120,7 @@ l_ds_pop2:
 
 */
 l_ds_push3:
+
   addi DS, DS, -(3 * SIZE)
   sw a2, (0 * SIZE)(DS)
   sw a1, (1 * SIZE)(DS)
@@ -117,7 +128,12 @@ l_ds_push3:
   jr x5
 
 l_ds_pop3:
-  lw a2, (0 * SIZE)(DS)
+
+  lw t1, data_stack_top
+  addi t1, t1, -(3 * SIZE)
+  blt t1, DS, stack_underflow
+
+ lw a2, (0 * SIZE)(DS)
   lw a1, (1 * SIZE)(DS)
   lw a0, (2 * SIZE)(DS)
   addi DS,  DS, (3 * SIZE)
@@ -137,7 +153,12 @@ l_ds_push4:
   jr x5
 
 l_ds_pop4:
-  lw a3, (0 * SIZE)(DS)
+
+  lw t1, data_stack_top
+  addi t1, t1, -(4 * SIZE)
+  blt t1, DS, stack_underflow
+
+lw a3, (0 * SIZE)(DS)
   lw a2, (1 * SIZE)(DS)
   lw a1, (2 * SIZE)(DS)
   lw a0, (3 * SIZE)(DS)
@@ -159,6 +180,11 @@ l_ds_push5:
   jr x5
 
 l_ds_pop5:
+
+  lw t1, data_stack_top
+  addi t1, t1, -(5 * SIZE)
+  blt t1, DS, stack_underflow
+
   lw a4, (0 * SIZE)(DS)
   lw a3, (1 * SIZE)(DS)
   lw a2, (2 * SIZE)(DS)
@@ -183,6 +209,11 @@ l_ds_push6:
   jr x5
 
 l_ds_pop6:
+
+  lw t1, data_stack_top
+  addi t1, t1, -(6 * SIZE)
+  blt t1, DS, stack_underflow
+
   lw a5, (0 * SIZE)(DS)
   lw a4, (1 * SIZE)(DS)
   lw a3, (2 * SIZE)(DS)
@@ -192,6 +223,9 @@ l_ds_pop6:
   addi DS, DS, (6 * SIZE)
   jr x5
 
+stack_underflow:
+  print_literal underflow, "stack underflow  "
+  jr x5
 
 /*
 ################################################################################

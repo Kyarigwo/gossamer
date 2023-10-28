@@ -23,7 +23,6 @@ cold_start:
   call add_gmer_bye
   call add_gmer_print
   call add_gmer_version
-  call add_gmer_dot
 
   call add_gmer_print_wordlist
 
@@ -33,14 +32,16 @@ cold_start:
   call add_gmer_poke
   call add_gmer_poke_byte
 
-# Arithmatic
-
-  call add_gmer_plus
-  call add_gmer_minus
-  call add_gmer_times
-
+  call add_system_variables
+  call add_arithmatic
 # Comparison
 
+  call add_gmer_equals
+  call add_gmer_not_equals
+  call add_gmer_lt
+  call add_gmer_gt
+  call add_gmer_lteq
+  call add_gmer_gteq
 
 
 # interpret words
@@ -62,17 +63,6 @@ cold_start:
 
 # Startup words
   call add_gmer_allot_memory
-
-# System variables
-  call add_gmer_ptr_here
-  call add_gmer_here
-  call add_gmer_input_buffer
-  call add_gmer_parse_point
-  call add_gmer_parse_point_size
-  call add_gmer_latest_word
-  call add_gmer_new_word
-  call add_gmer_immediate_mode
-  call add_gmer_cell
 
 # Compile words
   call add_gmer_header
@@ -99,25 +89,8 @@ cold_start:
 # Utilities
   call add_gmer_b_memcpy
 
-# Stack manipulation
-  call add_gmer_drop
-  call add_gmer_swap
-  call add_gmer_nip
-  call add_gmer_dup
-  call add_gmer_over
-  call add_gmer_tuck
-  call add_gmer_rot
-  call add_gmer_minus_rot
+  call add_stack
 
-# stack manipulation 2
-  call add_gmer_two_drop
-  call add_gmer_two_swap
-  call add_gmer_two_nip
-  call add_gmer_two_dup
-  call add_gmer_two_over
-  call add_gmer_two_tuck
-  call add_gmer_two_rot
-  call add_gmer_two_minus_rot
 
   sys_pop4
   ret
@@ -234,20 +207,13 @@ make_codeword bye, "bye"
   ecall
   j next
 
-make_codeword print, "print"
+make_codeword print, ">output"
   ds_pop2
   call print
   j next
 
 make_codeword version, "version"
   call print_version
-  j next
-
-make_codeword dot, "."
-  ds_pop1
-  call number_to_word
-  call print
-  call print_space
   j next
 
 make_codeword print_wordlist, "wordlist"
@@ -258,7 +224,7 @@ make_codeword print_wordlist, "wordlist"
   mv a0, s0
   call wt_to_name
   call print
-  call print_space
+  call print_newline
   lw s0, 0(s0)
   j 1b
 2:
@@ -279,7 +245,7 @@ make_codeword peek, "?"
   ds_push1
   j next
 
-make_codeword peek_byte, "b?"
+make_codeword peek_byte, "?:b"
   ds_pop1
   lb a0, 0(a0)
   ds_push1
@@ -290,64 +256,10 @@ make_codeword poke, "!"
   sw a0, 0(a1)
   j next
 
-make_codeword poke_byte, "b!"
+make_codeword poke_byte, "!:b"
   ds_pop2
   sb a0, 0(a1)
   j next
-
-/*
-################################################################################
-#
-# System variables
-#
-################################################################################
-*/
-make_codeword ptr_here, "&here"
-  la a0, ptr_here
-  ds_push1
-  j next
-
-make_codeword here, "^here"
-  lw a0, ptr_here
-  ds_push1
-  j next
-
-make_codeword input_buffer, "input-buffer"
-  la a0, input_buffer
-  lw a1, input_buffer_size
-  ds_push2
-  j next
-
-make_codeword parse_point, "^parse"
-  lw a0, parse_point
-  ds_push1
-  j next
-
-make_codeword parse_point_size, "#parse"
-  lw a0, parse_point_size
-  ds_push1
-  j next
-
-make_codeword latest_word, "latest-word"
-  lw a0, ptr_latest
-  ds_push1
-  j next
-
-make_codeword new_word, "new-word"
-  lw a0, ptr_new_word
-  ds_push1
-  j next
-
-make_codeword immediate_mode, "immediate-mode"
-  la a0, immediate_mode
-  ds_push1
-  j next
-
-make_codeword cell, "cell"
-  li a0, 4
-  ds_push1
-  j next
-
 /*
 ################################################################################
 #
@@ -465,32 +377,6 @@ print_literal version, "Version 1.0\n"
 /*
 ################################################################################
 #
-# Arithmatic
-#
-################################################################################
-*/
-
-make_codeword plus, "+"
-  ds_pop2
-  add a0, a0, a1
-  ds_push1
-  j next
-
-make_codeword minus, "-"
-  ds_pop2
-  sub a0, a0, a1
-  ds_push1
-  j next
-
-make_codeword times, "*"
-  ds_pop2
-  mul a0, a1, a0
-  ds_push1
-  j next
-
-/*
-################################################################################
-#
 # Comparison
 #
 ################################################################################
@@ -498,153 +384,66 @@ make_codeword times, "*"
 
 make_codeword equals, "="
   ds_pop2
-
-
-/*
-################################################################################
-#
-# stack manipulation
-#
-################################################################################
-*/
-
-make_codeword drop, "drop"
-  ds_pop1
+  beq a0, a1, 1f
+  li a0, 0
+  ds_push1
   j next
-
-make_codeword swap, "swap"
-  ds_pop2
-  mv t0, a0
-  mv a0, a1
-  mv a1, t0
-  ds_push2
-  j next
-
-make_codeword nip, "nip"
-  ds_pop2
-  mv a0, a1
+1:
+  li a0, -1
   ds_push1
   j next
 
-make_codeword dup, "dup"
-  ds_pop1
-  mv a1, a0
-  ds_push2
-  j next
-
-make_codeword over, "over"
+make_codeword not_equals, "!="
   ds_pop2
-  mv a2, a0
-  ds_push3
+  beq a0, a1, 1f
+  li a0, -1
+  ds_push1
+  j next
+1:
+  li a0, 0
+  ds_push1
   j next
 
-make_codeword tuck, "tuck"
+make_codeword lt, "<"
   ds_pop2
-  mv a2, a1
-  mv a1, a0
-  mv a0, a2
-  ds_push3
+  blt a0, a1, 1f
+  li a0, 0
+  ds_push1
+  j next
+1:
+  li a0, -1
+  ds_push1
   j next
 
-make_codeword rot, "rot"
-  ds_pop3
-  mv t0, a0
-  mv a0, a1
-  mv a1, a2
-  mv a2, t0
-  ds_push3
-  j next
-
-make_codeword minus_rot, "-rot"
-  ds_pop3
-  mv t0, a2
-  mv a2, a1
-  mv a1, a0
-  mv a0, t0
-  ds_push3
-  j next
-
-/*
-################################################################################
-#
-# Double stack manipulation
-#
-################################################################################
-*/
-
-make_codeword two_drop, "2drop"
+make_codeword lteq, "<="
   ds_pop2
+  ble a0, a1, 1f
+  li a0, 0
+  ds_push1
+  j next
+1:
+  li a0, -1
+  ds_push1
   j next
 
-make_codeword two_swap, "2swap"
-  ds_pop4
-  mv t0, a0
-  mv t1, a1
-  mv a0, a2
-  mv a1, a3
-  mv a2, t0
-  mv a3, t1
-  ds_push4
-  j next
-
-make_codeword two_nip, "2nip"
-  ds_pop4
-  mv a0, a2
-  mv a1, a3
-  ds_push4
-  j next
-
-make_codeword two_dup, "2dup"
+make_codeword gt, ">"
   ds_pop2
-  mv a2, a0
-  mv a3, a1
-  ds_push4
+  bgt a0, a1, 1f
+  li a0, 0
+  ds_push1
+  j next
+1:
+  li a0, -1
+  ds_push1
   j next
 
-make_codeword two_over, "2over"
-  ds_pop4
-  mv a4, a0
-  mv a5, a1
-  ds_push6
+make_codeword gteq, ">="
+  ds_pop2
+  bge a0, a1, 1f
+  li a0, 0
+  ds_push1
   j next
-
-make_codeword two_tuck, "2tuck"
-  ds_pop4
-  mv a4, a2
-  mv a5, a3
-  mv a2, a0
-  mv a3, a1
-  mv a0, a4
-  mv a1, a5
-  ds_push6
-  j next
-
-make_codeword two_rot, "2rot"
-  ds_pop6
-  mv t0, a0
-  mv t1, a1
-  mv a0, a2
-  mv a1, a3
-  mv a2, a4
-  mv a3, a5
-  mv a4, t0
-  mv a5, t1
-  ds_push6
-  j next
-
-make_codeword two_minus_rot, "-2rot"
-  ds_pop6
-  mv t0, a4
-  mv t1, a5
-
-  mv a4, a2
-  mv a5, a3
-
-  mv a2, a0
-  mv a3, a1
-
-  mv a0, t0
-  mv a1, t1
-
-  ds_push6
+1:
+  li a0, -1
+  ds_push1
   j next
