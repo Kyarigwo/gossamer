@@ -5,7 +5,7 @@
 #
 ################################################################################
 */
-#include "common.S"
+#include "../common.S"
 
 .global cold_start, lit_codeword, print
 .global print_newline, print_ok, print_compiled, print_space,
@@ -62,10 +62,6 @@ cold_start:
   call add_gmer_word_to_number
 
   call add_gmer_literal
-
-# VM words
-//  call add_gmer_exit
-//  call add_gmer_execute
 
 # Startup words
   call add_gmer_allot_memory
@@ -152,22 +148,6 @@ make_codeword literal, "literal"
   call literal
   j next
 
-/*
-################################################################################
-#
-# VM words
-#
-################################################################################
-*/
-/*
-make_codeword exit, "exit"
-  j code_exit
-
-make_codeword execute, "execute"
-  ds_pop1
-  j execute
-  j next
-*/
 /*
 ################################################################################
 #

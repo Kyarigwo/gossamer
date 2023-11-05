@@ -3,11 +3,11 @@
 
 .data 2
 bootstrap_words:
-.incbin "src/bootstrap.gossamer"
+.incbin "src/gossamer/bootstrap.gossamer"
 .equ bootstrap_words_length, .-bootstrap_words
 
 .data 2
 secondary_words:
-.incbin "src/nucleus.gossamer"
+.incbin "src/gossamer/nucleus.gossamer"
 .equ secondary_words_length, .-secondary_words
 

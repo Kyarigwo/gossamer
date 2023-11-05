@@ -5,7 +5,7 @@
 #
 ################################################################################
 */
-#include "common.S"
+#include "../common.S"
 
 .global add_compile, gmer_lit
 

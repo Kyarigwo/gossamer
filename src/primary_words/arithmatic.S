@@ -1,5 +1,5 @@
 
-#include "common.S"
+#include "../common.S"
 
 .global add_arithmatic
 

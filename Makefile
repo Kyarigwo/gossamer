@@ -1,7 +1,9 @@
 export PATH := $(PATH):/home/bruce/.local/riscv/toolchain/bin
 
-
 SRC_DIR = src
+GOSSAMER_SRC_DIR = $(SRC_DIR)/gossamer
+PRIMARY_WORDS_SRC_DIR = $(SRC_DIR)/primary_words
+
 BIN_DIR = .
 EXE = $(BIN_DIR)/gossamer
 
@@ -9,13 +11,15 @@ CC = riscv64-unknown-elf-gcc
 CFLAGS = -nostdlib -mabi=ilp32 -march=rv32imac
 DEBUG_FLAGS = -ggdb
 
-SRC = $(wildcard $(SRC_DIR)/*.S)
+ASM_SRC = $(wildcard $(SRC_DIR)/*.S)
+GOSSAMER_SRC = $(wildcard $(GOSSAMER_SRC_DIR)/*.gossamer)
+PRIMARY_WORDS_SRC = $(wildcard $(PRIMARY_WORDS_SRC_DIR)/*.S)
 
 .PHONY: all
 all: $(EXE) # gossamer
 
-$(EXE): $(SRC) $(SRC_DIR)/bootstrap.gossamer  $(SRC_DIR)/nucleus.gossamer
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRC) -o $(EXE)
+$(EXE): $(ASM_SRC) $(PRIMARY_WORDS_SRC) $(GOSSAMER_SRC_DIR)
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(PRIMARY_WORDS_SRC) $(ASM_SRC) -o $(EXE)
 
 .PHONY: clean
 clean:

@@ -3,9 +3,6 @@
 
 .global _start
 
-
-.global next, enter, codeword_exit, execute, code_exit
-
 /*
 ################################################################################
 #
