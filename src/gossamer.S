@@ -66,12 +66,8 @@ _start:
 
   call interpret
 
-#  la IP, interpret_xt
-#  j next
-1:
-  call refill_input
-  call interpret
-  j 1b
+  la IP, interpret_xt
+  j next
 
   li a7, SYS_EXIT
   ecall

@@ -170,15 +170,13 @@
     if refill-input drop:2 endif
   forever ;
 
--- ` interpret &interpret_xt !
+` interpret &interpret_xt !
 
 -- -----------------------------------------------------------------------------
 --
 -- End of interpret
 --
 -- -----------------------------------------------------------------------------
-
--- interpret
 
 : :q bye ;
 
