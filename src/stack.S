@@ -36,6 +36,10 @@ add_stack:
   call add_gmer_two_rot
   call add_gmer_two_minus_rot
 
+# stack manipulation rs
+  call add_gmer_ds_to_rs
+  call add_gmer_rs_to_ds
+
   sys_pop4
   ret
 
@@ -135,7 +139,7 @@ make_codeword two_nip, "nip:2"
   ds_pop4
   mv a0, a2
   mv a1, a3
-  ds_push4
+  ds_push2
   j next
 
 make_codeword two_dup, "dup:2"
@@ -191,4 +195,22 @@ make_codeword two_minus_rot, "-rot:2"
   mv a1, t1
 
   ds_push6
+  j next
+
+/*
+################################################################################
+#
+# return stack manipulation
+#
+################################################################################
+*/
+
+make_codeword ds_to_rs, "ds>rs"
+  ds_pop1
+  rs_push1
+  j next
+
+make_codeword rs_to_ds, "rs>ds"
+  rs_pop1
+  ds_push1
   j next

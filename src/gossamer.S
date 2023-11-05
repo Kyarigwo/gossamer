@@ -58,11 +58,16 @@ _start:
 
   la a0, secondary_words
   la a1, secondary_words_length
+
+  add a1, a1, a0
+  sw a0, input_bottom, t0
   sw a0, parse_point, t0
-  sw a1, parse_point_size, t0
+  sw a1, input_top, t0
 
   call interpret
 
+#  la IP, interpret_xt
+#  j next
 1:
   call refill_input
   call interpret

@@ -1,19 +1,39 @@
+
+: -- 10 char-parse drop:2 ; immediate
+-- now we have end of line comments
+
 : ( 41 char-parse drop drop ; immediate
 ( now we have comments )
 
-: -- 10 char-parse drop drop ; immediate
+-- -----------------------------------------------------------------------------
+--
+--  Data area operations
+--
+-- -----------------------------------------------------------------------------
 
--- now we have end of line comments
+: allot ( u -- )  }data + }data& ! ;
+: cells ( u -- u )  cell * ;
+: ds>data ( w -- )  }data ! cell allot ;
+: ds>data:b ( b -- )  }data !:b 1 allot ;
 
--- data area allocation
-: allot ( bytes -- ) }data + }data& ! ;
-: cells ( u -- cell * u ) cell * ;
-: ,  ( w -- ) }data ! cell allot ;
-: b, ( b -- ) }data !:b 1 allot ;
+-- -----------------------------------------------------------------------------
+--
+-- literal booleans
+--
+-- -----------------------------------------------------------------------------
 
--- boolean constants
-: true ( -- f ) -1 ;
-: false ( -- f ) 0 ;
+: true ( -- f )  1 ;
+: false ( -- f )  0 ;
+
+-- switches
+: on  ( addr -- )  true swap ! ;
+: off ( addr -- )  false swap ! ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Variable access abbreviations
+--
+-- -----------------------------------------------------------------------------
 
 -- abbreviations
 : 1+ ( n -- n ) 1 + ;
@@ -23,68 +43,178 @@
 : !+ ( addr -- ) dup ? 1+ swap ! ;
 : !- ( addr -- ) dup ? 1- swap ! ;
 
-: <0 ( n -- f ) 0 < ;
+-- -----------------------------------------------------------------------------
+--
+--  Literal tokens or compilation
+--
+-- -----------------------------------------------------------------------------
 
--- switchs
-: on ( addr -- ) true swap ! ;
-: off ( addr -- ) false swap ! ;
-
--- turn immediate mode off in the middle of a definition
-: [ ( -- ) immediate-mode on ; immediate
-: ] ( -- ) immediate-mode off ;
-
--- primary flow control words
+-- get executon tokens
 : ` ( -- xt ) word-parse find-word drop ;
 : [`] ( -- ) ` literal ; immediate
-: 2literal ( n m -- ) [`] 2lit , , , ;
+: 2literal ( n m -- ) [`] 2lit ds>data ds>data ds>data ;
+: compile ( -- ) ` literal [`] ds>data ds>data ; immediate
+
+-- -----------------------------------------------------------------------------
+--
+--  Generalised flow control
+--
+-- -----------------------------------------------------------------------------
+
+: create-target ( -- target ) }data ;
+
+: resolve-target-false ( target -- ) compile branch-false ds>data ;
+: resolve-target ( target -- ) compile branch ds>data ;
+
+: create-source-false ( -- source ) compile branch-false }data 0 ds>data ;
+: create-source ( -- source ) compile branch }data 0 ds>data ;
+
+: resolve-source ( source -- )  }data swap ! ;
+
+-- -----------------------------------------------------------------------------
+--
+-- Basic flow control
+--
+-- -----------------------------------------------------------------------------
 
 -- if else endif statements
-: source-forward ( -- src ) [`] branch , }data 0 , ;
-: [source-forward] ( -- src )  source-forward ; immediate
-: source-forward? ( -- src ) [`] branch-false , }data 0 , ;
-: [source-forward?] ( -- src ) source-forward? ; immediate
+: if ( -- source ) create-source-false  ; immediate
+: else ( source -- source ) create-source swap resolve-source ; immediate
+: endif ( source -- ) resolve-source  ; immediate
+: do ( -- target ) create-target ; immediate
+: repeat ( target source -- ) swap resolve-target resolve-source  ; immediate
+: forever ( target -- ) resolve-target ; immediate
 
-: sink-forward ( src -- ) }data swap ! ;
-: [sink-forward] ( src -- ) sink-forward ; immediate
+-- -----------------------------------------------------------------------------
+--
+-- Literal characters
+--
+-- -----------------------------------------------------------------------------
 
-: sink-backward ( -- src ) }data ;
-: source-backward ( src -- )  [`] branch , , ;
-
-: if ( -- source-forward ) source-forward?  ; immediate
-: else ( source-forward -- source-forward )
-            [`] branch , }data 0 , swap }data swap ! ; immediate
-: endif ( dest-forward -- ) sink-forward ; immediate
-: do ( -- dest-backwards ) sink-backward ; immediate
-: repeat ( dest-backwords -- ) swap source-backward sink-forward ; immediate
-
-
+-- characters
 : ' ( -- c ) word-parse drop ?:b ;
-: ['] ( -- )   ' literal ; immediate
+: ['] ( -- )  ' literal ; immediate
+
+-- print a single character
+: emit ( c -- )   }data !:b }data 1 >output ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Literal strings & printing
+--
+-- -----------------------------------------------------------------------------
+
+-- when run, this will copy up to " to the data area
+-- and push the addr u on the stack
+: ]"[ ( -- addr u )
+      create-source
+        ['] " char-parse 2 -    -- addr (u - 1)
+        swap 1+ swap            -- (addr + 1) (u - 1)
+        tuck }data              -- u addr u dst
+        {mem}>{mem}:b           -- u (dst + u + 1)
+        drop                    -- u
+        }data swap dup          -- dst u u
+        allot                   -- dst u
+        rot
+      resolve-source 2literal
+        ;
+
+-- this is to put a string in the word
+: " ( -- )  ]"[ ; immediate
+
+-- print with a newline
+: ." ( -- )  ]"[ compile >output 10 literal compile emit ; immediate
 
 
-: ." ( -- ) ['] " char-parse 1- >output ;
+-- ---------------------------------------------------------------------------
+--
+-- Start of Interpret
+--
+-- ---------------------------------------------------------------------------
 
-: ]"[ ( -- )  ['] " char-parse 1- tuck }data b-copy drop }data swap dup allot ;
-: " ( -- ) source-forward ]"[ rot sink-forward 2literal ; immediate
+-- change immediate mode on or off
+: [ immediate-mode on ; immediate
+: ] immediate-mode off ;
 
-: hello-world ( -- ) " Hello World!" >output ;
-: goodbye-world ( -- ) " goodbye world!" >output ;
+-- execute
+: nop ( -- ) ;
+: execute ( xt -- ) [ }data 3 cells + literal ] ! nop ;
 
-: true>output ( -- ) " true" >output ;
-: false>output ( -- ) " false" >output ;
-: bool. ( f -- ) if true>output else false>output endif ;
+: handle-word ( xt im? --  )
+      1 = immediate-mode ? or
+      if execute else ds>data endif  ;
 
-: emit ( c -- )   }data ! }data 1 >output ;
+: handle-number ( n -- )
+  immediate-mode ? not if literal endif ;
+
+: interpret-word ( -- refill? )
+    word-parse ?dup not if
+      drop immediate-mode ?
+        if ." ok"
+        else ." compiled"
+        endif
+      true
+    else dup:2 find-word ?dup if
+      nip:2 handle-word false
+    else drop dup:2 ">#  if
+      -rot drop:2 handle-number false
+    else immediate-mode on drop >output " ? " >output true
+    endif
+    endif
+    endif
+    ;
+
+: interpret ( -- )
+  do
+    interpret-word
+    if refill-input drop:2 endif
+  forever ;
+
+-- ` interpret &interpret_xt !
+
+-- -----------------------------------------------------------------------------
+--
+-- End of interpret
+--
+-- -----------------------------------------------------------------------------
+
+-- interpret
+
+: :q bye ;
+
+: hello-world ( -- ) ." Hello World!" ;
+: goodbye-world ( -- ) ." goodbye world!" ;
+
+: true>output ( -- ) ." true"  ;
+: false>output ( -- ) ." false"  ;
+: .:f ( f -- ) if true>output else false>output endif ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Some arithimatic
+--
+-- -----------------------------------------------------------------------------
 
 : / ( n -- n ) /% drop ;
 : % ( n -- u ) /% nip ;
 : abs ( n -- u ) abs-sign nip ;
 : sign ( n -- n ) abs-sign drop ;
-: :q bye ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Character constants
+--
+-- -----------------------------------------------------------------------------
 
 : '0 ( -- c ) 48 ;
 : 'nl ( -- c ) 10 ;
 : 'sp ( -- c ) 32 ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Number formatting
+--
+-- -----------------------------------------------------------------------------
 
 : digit->char ( u -- c ) '0 + ;
 
@@ -98,7 +228,7 @@
 : char>format ( c -- ) format&{ !- format{ !:b ;
 : digit-format ( u -- u ) 10 /% digit->char char>format ;
 : digits-format ( u -- ) do digit-format ?dup if repeat ;
-: sign-format ( n -- ) <0 if ['] - char>format endif ;
+: sign-format ( n -- ) 0 < if ['] - char>format endif ;
 : number->string ( n -- addr u )
       <format
         abs-sign
@@ -108,8 +238,12 @@
 
 : . ( n -- ) number->string >output 'sp emit ;
 
-: ds? ( n -- n )  dup . ;
-: ds:2? ( x y -- x y ) dup:2 . . ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Some useful printf style debugging
+--
+-- -----------------------------------------------------------------------------
 
 : {mem}>output? ( addr u -- )
       do
@@ -118,3 +252,16 @@
           ?:b . 1- swap 1+ swap
       repeat
       drop:2 drop ;
+
+: {ds?} ( -- )
+    " <  " >output
+    }ds ds{ cell +
+    do
+      dup:2
+      > if dup ? . cell +
+    repeat
+    drop:2
+    " > " >output
+    ;
+
+

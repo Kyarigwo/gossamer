@@ -9,6 +9,7 @@
 .global l_ds_push5, l_ds_pop5
 .global l_ds_push6, l_ds_pop6
 .global l_rs_pushIP, l_rs_popIP
+.global l_rs_push1, l_rs_pop1
 
 /*
 ################################################################################
@@ -234,7 +235,11 @@ stack_underflow:
 #
 ################################################################################
 */
+/*
 
+# push/pop IP from stack
+
+*/
 l_rs_pushIP:
   addi RS, RS, -(1 * SIZE)
   sw IP, (0 * SIZE)(RS)
@@ -243,4 +248,19 @@ l_rs_pushIP:
 l_rs_popIP:
   lw IP, (0 * SIZE)(RS)
   addi RS, RS, (1 * SIZE)
+  jr x5
+
+/*
+
+# push/pop a0 from stack
+
+*/
+l_rs_push1:
+  addi RS, RS, -(1 * SIZE)
+  sw a0, (0 * SIZE)(RS)
+  jr x5
+
+l_rs_pop1:
+  lw a0, (0 * SIZE)(DS)
+  addi DS, DS, (1 * SIZE)
   jr x5

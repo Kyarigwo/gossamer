@@ -9,7 +9,7 @@ CC = riscv64-unknown-elf-gcc
 CFLAGS = -nostdlib -mabi=ilp32 -march=rv32imac
 DEBUG_FLAGS = -ggdb
 
-SRC = $(wildcard $(SRC_DIR)/*.S)  # gossamer.S macros.S utilities.S words.S
+SRC = $(wildcard $(SRC_DIR)/*.S)
 
 .PHONY: all
 all: $(EXE) # gossamer

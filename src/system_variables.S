@@ -10,9 +10,11 @@
 .global add_system_variables
 
 .global ptr_latest, ptr_new_word, ptr_here, immediate_mode, data_stack_top
-.global return_stack_top, local_stack_top, data_area_base, input_buffer
-.global input_buffer_size, parse_point, parse_point_size
+.global return_stack_top, local_stack_top, data_area_base
+.global scratch_input_buffer
+.global input_bottom, input_top, parse_point
 .global number_format_buffer, number_format_start
+.global interpret_xt
 
 
 add_system_variables:
@@ -22,13 +24,16 @@ add_system_variables:
   call add_gmer_here
   call add_gmer_input_buffer
   call add_gmer_parse_point
-  call add_gmer_parse_point_size
+  call add_gmer_input_buffer_top
   call add_gmer_latest_word
   call add_gmer_new_word
   call add_gmer_immediate_mode
   call add_gmer_cell
   call add_gmer_nfb
   call add_gmer_nfb_c
+  call add_gmer_ds_top
+  call add_gmer_ds_base
+  call add_gmer_interpret_xt
   sys_pop4
   ret
 
@@ -49,21 +54,21 @@ make_codeword here, "}data"
   ds_push1
   j next
 
-make_codeword input_buffer, "input{#"
-  la a0, input_buffer
-  lw a1, input_buffer_size
-  ds_push2
-  j next
-
-make_codeword parse_point, "{input}"
-  lw a0, parse_point
+make_codeword input_buffer, "input{"
+  lw a0, input_bottom
   ds_push1
   j next
 
-make_codeword parse_point_size, "{input#}"
-  lw a0, parse_point_size
+make_codeword parse_point, "{input&}"
+  la a0, parse_point
   ds_push1
   j next
+
+make_codeword input_buffer_top, "}input"
+  lw a0, input_top
+  ds_push1
+  j next
+
 
 make_codeword latest_word, "@word"
   lw a0, ptr_latest
@@ -96,6 +101,21 @@ make_codeword nfb_c, "format&{"
   ds_push1
   j next
 
+make_codeword ds_top, "}ds"
+  lw a0, data_stack_top
+  ds_push1
+  j next
+
+make_codeword ds_base, "ds{"
+  mv a0, DS
+  ds_push1
+  j next
+
+make_codeword interpret_xt, "&interpret_xt"
+  la a0, interpret_xt
+  ds_push1
+  j next
+
 .bss
 
 /*
@@ -120,19 +140,16 @@ local_stack_top:
 
 */
 
-input_buffer_ptr:
-  .4byte
-
-input_buffer:
+scratch_input_buffer:
 .space INPUT_BUFFER_MAX
 
-input_buffer_size:
+input_bottom:
+  .4byte 0
+
+input_top:
   .4byte 0
 
 parse_point:
-  .4byte 0
-
-parse_point_size:
   .4byte 0
 
 /*
@@ -154,6 +171,7 @@ number_format_start:
 # Data area variables
 
 */
+
 .bss
 
 data_area_base:
@@ -166,6 +184,9 @@ ptr_latest:
   .4byte 0
 
 ptr_new_word:
+  .4byte 0
+
+interpret_xt:
   .4byte 0
 
 /*

@@ -30,18 +30,18 @@ returns:
 .text
 refill_input:
   li a0, 0                      # stdin
-  la a1, input_buffer
+  la a1, scratch_input_buffer
   li a2, INPUT_BUFFER_MAX
   li a7, SYS_READ
   ecall
   bltz a0, 1f                   # if successful
-  sw a0, input_buffer_size, t0  # set amount of data read
-  la t0, input_buffer           # load base of input
-  sw t0, parse_point, t1        # reset parse point
-  sw a0, parse_point_size, t0   # reset parse size
-
-  mv a1, a0
-  la a0, input_buffer
+  mv t0, a0                     # size of result
+  la a0, scratch_input_buffer   # base of input buffer
+  sw a0, input_bottom, t1       # store input_bottom
+  sw a0, parse_point, t1        # store parse_point
+  add a1, a0, t0              # top of input buffer
+  sw a1, input_top, t1        # store input_top
+  mv a1, t0
   ret
 1:
   li a0, 0
@@ -49,80 +49,73 @@ refill_input:
 
 /*
 
-whitespace_parse -- moves ^parse to first point past
+whitespace_parse -- moves {input} to first point past
                               whitespace, or end of buffer
 
 input:
   none
 
 returns:
-  a0: original value of ^parse
-  a1: distance between new ^parse and old ^parse
+  a0: original value of {input}
+  a1: distance between new {input} and old {input}
 
 */
 whitespace_parse:
   lw a0, parse_point
-  lw a1, parse_point_size
-  li a2, 32           # space to compare to
-  mv a4, a0           # record original location of ^parse
-  add a3, a0, a1      # a3 = a0 + a1 pointer to end of parse area
+  mv a2, a0
+  lw a3, input_top
+  li a4, 32           # space to compare to
 1:
-  bge a0, a3, 2f      # while parse-point < parse-top
-  lb a5, 0(a0)        #   load byte at parse point
-  bgt a5, a2, 2f      #   if byte is > 32, exit
-  addi a0, a0, 1      #   advance parse point by one
+  bge a2, a3, 2f      # while parse-point < parse-top
+  lb  a5, 0(a2)       #   load byte at parse point
+  bgtu a5, a4, 2f      #   if byte is > 32, exit
+  addi a2, a2, 1      #   advance parse point by one
   j 1b                # wend
 2:
-  sub a1, a3, a0      # parse_point_size = parse-top - parse point
-  sw a0, parse_point, t0
-  sw a1, parse_point_size, t0
-  sub a1, a0, a4
-  mv a0, a4
+  sw a2, parse_point, t0
+  sub a1, a2, a0
   ret
 
 /*
 
-non_whitespace_parse -- moves ^parse to first whitespace point past
+non_whitespace_parse -- moves {input} to first whitespace point past
                           non-whitespace, or end of of buffer
 
 input:
   none
 
 returns:
-  a0: original value of ^parse
-  a1: distance between new ^parse and old ^parse
+  a0: original value of {input}
+  a1: distance between new {input} and old {input}
 
 */
 non_whitespace_parse:
   lw a0, parse_point
-  lw a1, parse_point_size
-  li a2, 32           # space to compare to
-  mv a4, a0           # record original location of ^parse
-  add a3, a0, a1      # a3 = a0 + a1 pointer to end of parse area
+  mv a2, a0
+  lw a3, input_top
+  li a4, 32           # space to compare to
 1:
-  bge a0, a3, 2f      # while parse-point < parse-top
-  lb a5, 0(a0)        #   load byte at parse point
-  ble a5, a2, 2f      #   if byte is <= 32, exit
-  addi a0, a0, 1      #   advance parse point by one
+  bge a2, a3, 2f      # while parse-point < parse-top
+  lb  a5, 0(a2)       #   load byte at parse point
+  bleu a5, a4, 2f      #   if byte is < 32, exit
+  addi a2, a2, 1      #   advance parse point by one
   j 1b                # wend
 2:
-  sub a1, a3, a0      # parse_point_size = parse-top - parse point
-  sw a0, parse_point, t0
-  sw a1, parse_point_size, t0
-  sub a1, a0, a4
-  mv a0, a4
+  sw a2, parse_point, t0
+  sub a1, a2, a0
   ret
+
 
 /*
 
-word_parse -- moves ^parse to past next whitespace seperated word
+word_parse -- moves {input} to past next whitespace seperated word
                 or at end of buffer
 
 input:
   none
 
 returns:
-  a0: ^parse at start of word
+  a0: {input} at start of word
   a1: length of word, or 0 if not found
 
 */
@@ -137,39 +130,33 @@ word_parse:
 
 /*
 
-char-parse -- moves ^parse to next instance of char
+char-parse -- moves {input} to next instance of char
               or at end of buffer
 
 input:
   a0: char to find
 
 returns:
-  a0: ^parse at start of search
+  a0: {parse} at start of search
   a1: length of characters to matching char
 
 */
 char_parse:
-
-  lw a1, parse_point
-  lw a2, parse_point_size
-
-  mv a4, a1                 # record original location of ^parse
-  add a3, a1, a2            # a3 = pointer to end of parse area
+  mv a4, a0
+  lw a0, parse_point
+  mv a2, a0
+  lw a3, input_top
 1:
-  bge a1, a3, 3f            # while parse-point < parse-top
-  lb a5, 0(a1)              # load byte at parse point
-  beq a5, a0, 2f            # if byte is found, exit
-  addi a1, a1, 1            # advance parse point by one
-  j 1b                      # wend
+  bge a2, a3, 3f      # while parse-point < parse-top
+  lb  a5, 0(a2)       #   load byte at parse point
+  beq a5, a4, 2f            # if byte is found, exit
+  addi a2, a2, 1
+  j 1b
 2:
-  addi a1, a1, 1
+  addi a2, a2, 1            # move point past character
 3:
-  sub a2, a3, a1
-  sw a1, parse_point, t0
-  sw a2, parse_point_size, t0
-  mv a0, a4
-  sub a1, a1, a0
-
+  sw a2, parse_point, t0
+  sub a1, a2, a0
   ret
 
 /*
@@ -403,9 +390,6 @@ find_word:
 /*
 
 # word_to_number - converts word to + number.  -1 if fail
-
-for the moment, only consider unsigned ints.  So -1 if anything else,
-including extra characters.
 
 arguments:
   a0: start of string to convert

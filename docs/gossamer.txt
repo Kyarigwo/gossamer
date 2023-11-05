@@ -4,92 +4,173 @@ Debugging
 qemu-riscv32 -g 1234 gossamer
 riscv64-unknown-elf-gdb -tui ./gossamer
 
+##
 
-## Primary words
+: create-target ( -- target ) }data ;
 
-# vm
+: resolve-target-if-false [`] branch , ;
+: resolve-target [`] branch , ;
 
-  exit
-  execute
+: create-source-if-false [`] branch }data 0 , ;
 
-# interpret
+: create-source [`] branch }data 0 , ;
+: resolve-source }data swap ! ;
 
-  refill-input
-  whitespace-parse
-  non-whitespace-parse
-  word-parse
-  char-parse
-  "=
-  interpret
-  find-word
-  ">#
-  literal
 
-# Dictionary
 
-  wt>name
-  wt>xt
-  xt>wt
-  immediate?
+## Current wordlist
 
-# System variables
+### Primary words
 
-  &here
-  ^here
-  input-buffer
-  ^parse
-  #parse
-  latest-word
-  new-word
-  immediate-mode
-  cell
+#### Stack
 
-# Compile words
+rs>ds
+ds>rs
+-rot:2
+rot:2
+tuck:2
+over:2
+dup:2
+nip:2
+swap:2
+drop:2
+-rot
+rot
+tuck
+over
+?dup
+dup
+nip
+swap
+drop
 
-  header
-  add-codeword
-  end-word
-  immediate
-  :
-  lit
-  ;
-  branch
-  branch-false
+#### memory
 
-# Memory access
-  ?
-  b?
-  !
-  b!
+{mem}>{mem}:b
+immediate
+end-word
+add-codeword
+header
+immediate? -- is immediate word set?
+wt>xt
+wt>name
+;
+branch-false
+branch
+:
+2lit
+lit
+allot-memory
+literal
+">#
+find-word ( addr u -- xt (-1 | 0 | 1) ) searches for word on stack
+interpret
+"=
+char-parse
+word-parse
+non-whitespace-parse
+whitespace-parse
+refill-input
+>=
+<=
+>
+<
+!=
+=
+abs-sign
+/%
+*
+-
++
+ds{
+}ds
+format&{
+}format
+cell
+immediate-mode
+@new
+@word
+}input
+{input&}
+input{
+}data
+}data&
+!:b
+!
+?:b
+?
+wordlist
+version
+>output
+bye
 
-# Stack manipulation
 
-  drop
-  swap
-  nip
-  dup
-  over
-  tuck
-  rot
-  -rot
+### secondary words
 
-# arithmatic
-  +
-  -
-  *
+{ds?}  ( -- ) -- print current stack
+{mem}>output? ( addr u -- ) -- prints u from addr
+. ( w -- ) -- prints value on top of stack
+number->string ( n -- addr u )  -- converts a number to a string
+sign-format ( n -- ) -- if n < 0 writes sign to number format buffer
+digits-format ( u -- ) -- writes all digits of u to format buffer
+digit-format (  u -- u ) -- writes a single digit of u to format buffer
+char>format ( c -- ) -- writes charactor to format buffer
+format> ( -- addr u ) -- writes format location to stack
+<format ( -- ) -- resets format buffer
+format{ ( -- addr ) -- bottom of format buffer
+digit->char ( d -- c ) -- converts a single base 10 digit to an ascii char
+'sp ( -- c ) -- space char
+'nl ( -- c ) -- newline
+'0 ( -- c ) -- 0 character
+:q ( -- ) -- exits
+sign ( n -- n ) -- returns sign value
+abs ( n -- u ) -- returns absolute value of n
+% ( n -- u ) -- modulus of n - floors div
+/ ( n -- n ) -- div of n, rounds to - infinity
+emit ( c -- ) -- writes c to stdout
+.:f  ( f -- ) -- prints true or false based on flag
+false>output ( -- ) -- prints "false" to output
+true>output ( -- ) -- prints "true" to output
+goodbye-world ( -- ) -- prints "goodbye world"
+hello-world ( -- ) -- prints "hello world"
+"  ( -- ) -- immdediate word; creates string
+]"[ ( -- addr u ) -- helper word for "
+." ( -- ) -- interpret mode, prints string
+['] ( -- ) -- interpret, writes word xt to literal when run
+' ( -- ) -- immdediate, writes word xt to stack
+repeat
+do
+endif
+else
+if
+resolve-source
+create-source
+create-source-false
+resolve-target
+resolve-target-false
+create-target
+compile
+2literal
+[`]
+`
+<0
+!-
+!+
+1-
+1+
+execute
+nop
+]
+[
+off
+on
+false
+true
+ds>data:b
+ds>data
+cells
+allot
+(
+--
 
-# Utilities
 
-  allot-memory
-  b-copy
-
-# Misc
-
-  bye
-  print
-  version
-  hello-word
-  goodbye-word
-  .
-  wordlist
-  bool.
