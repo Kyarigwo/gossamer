@@ -2,6 +2,24 @@
 
 gossamer - yet another Risc V forth like language
 
+## Next
+
+interpret now implemented in gossamer.
+Next:
+  redefine header.
+  add variable.
+  add constant.
+  add has >does ? or should this be before variable, constant, since they can be
+      written in these terms.
+
+  new header will also have a documentation pointer field, intially empty
+  so I can add documentation to the words.
+
+  Add internal documentation.
+  Write wordlist in gossamer, and permit searching documentation.
+
+  Move to virt bare metal?
+
 ## Names
 
 Names are not obvious. I want to have a naming scheme that is consistent,

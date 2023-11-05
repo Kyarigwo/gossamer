@@ -51,15 +51,10 @@ cold_start:
   call add_gmer_not
 
 # interpret words
-  call add_gmer_refill_input
-  call add_gmer_whitespace_parse
-  call add_gmer_non_whitespace_parse
-  call add_gmer_word_parse
-  call add_gmer_char_parse
-  call add_gmer_string_eq
-  call add_gmer_interpret
-  call add_gmer_find_word
-  call add_gmer_word_to_number
+  call add_input_parsing
+
+#  call add_gmer_interpret
+
 
   call add_gmer_literal
 
@@ -87,61 +82,7 @@ lit_codeword:
   .4byte gmer_lit
 
 .text
-/*
-################################################################################
-#
-# interpret words
-#
-################################################################################
-*/
 
-make_codeword refill_input, "refill-input"
-  call refill_input
-  ds_push2
-  j next
-
-make_codeword whitespace_parse, "whitespace-parse"
-  call whitespace_parse
-  ds_push2
-  j next
-
-make_codeword non_whitespace_parse, "non-whitespace-parse"
-  call non_whitespace_parse
-  ds_push2
-  j next
-
-make_codeword word_parse, "word-parse"
-  call word_parse
-  ds_push2
-  j next
-
-make_codeword char_parse, "char-parse"
-  ds_pop1
-  call char_parse
-  ds_push2
-  j next
-
-make_codeword string_eq, "\"="
-  ds_pop4
-  call string_eq
-  ds_push1
-  j next
-
-make_codeword interpret, "interpret"
-  call interpret
-  j next
-
-make_codeword find_word, "find-word"
-  ds_pop2
-  call find_word
-  ds_push2
-  j next
-
-make_codeword word_to_number, "\">#"
-  ds_pop2
-  call word_to_number
-  ds_push2
-  j next
 
 make_codeword literal, "literal"
   ds_pop1

@@ -1,11 +1,8 @@
 
 #include "../common.S"
 
-
-.global refill_input, whitespace_parse, non_whitespace_parse, word_parse
-.global char_parse
-.global string_eq, find_word, word_to_number, literal
-
+.global add_input_parsing
+.global word_parse, find_word, word_to_number, literal
 /*
 ################################################################################
 #
@@ -14,7 +11,70 @@
 ################################################################################
 */
 
+add_input_parsing:
+  sys_push4
+  call add_gmer_refill_input
+  call add_gmer_whitespace_parse
+  call add_gmer_non_whitespace_parse
+  call add_gmer_word_parse
+  call add_gmer_char_parse
+  call add_gmer_string_eq
+  call add_gmer_find_word
+  call add_gmer_word_to_number
+  sys_pop4
+  ret
 
+/*
+################################################################################
+#
+# interpret words
+#
+################################################################################
+*/
+
+make_codeword refill_input, "refill-input"
+  call refill_input
+  ds_push2
+  j next
+
+make_codeword whitespace_parse, "whitespace-parse"
+  call whitespace_parse
+  ds_push2
+  j next
+
+make_codeword non_whitespace_parse, "non-whitespace-parse"
+  call non_whitespace_parse
+  ds_push2
+  j next
+
+make_codeword word_parse, "word-parse"
+  call word_parse
+  ds_push2
+  j next
+
+make_codeword char_parse, "char-parse"
+  ds_pop1
+  call char_parse
+  ds_push2
+  j next
+
+make_codeword string_eq, "\"="
+  ds_pop4
+  call string_eq
+  ds_push1
+  j next
+
+make_codeword find_word, "find-word"
+  ds_pop2
+  call find_word
+  ds_push2
+  j next
+
+make_codeword word_to_number, "\">#"
+  ds_pop2
+  call word_to_number
+  ds_push2
+  j next
 /*
 
 # refill-input - fills the input buffer from current input source
