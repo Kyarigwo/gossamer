@@ -1,0 +1,87 @@
+
+: :q bye ;
+
+: hello-world ( -- ) ." Hello World!" ;
+: goodbye-world ( -- ) ." goodbye world!" ;
+
+: true>output ( -- ) ." true"  ;
+: false>output ( -- ) ." false"  ;
+: .:f ( f -- ) if true>output else false>output endif ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Some arithimatic
+--
+-- -----------------------------------------------------------------------------
+
+: / ( n -- n ) /% drop ;
+: % ( n -- u ) /% nip ;
+: abs ( n -- u ) abs-sign nip ;
+: sign ( n -- n ) abs-sign drop ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Character constants
+--
+-- -----------------------------------------------------------------------------
+
+: '0 ( -- c ) 48 ;
+: 'nl ( -- c ) 10 ;
+: 'sp ( -- c ) 32 ;
+
+-- -----------------------------------------------------------------------------
+--
+--  Number formatting
+--
+-- -----------------------------------------------------------------------------
+
+: digit->char ( u -- c ) '0 + ;
+
+-- start of format buffer
+: format{  ( -- addr )  format&{ ? ;
+-- start number formatting
+: <format ( -- )  }format format&{  ! ;
+-- end number formatting
+: format> ( -- addr u ) format{ dup }format swap - ;
+-- char to format buffer
+: char>format ( c -- ) format&{ !- format{ !:b ;
+: digit-format ( u -- u ) 10 /% digit->char char>format ;
+: digits-format ( u -- ) do digit-format ?dup if repeat ;
+: sign-format ( n -- ) 0 < if ['] - char>format endif ;
+: number->string ( n -- addr u )
+      <format
+        abs-sign
+        digits-format
+        sign-format
+      format> ;
+
+: . ( n -- ) number->string >output 'sp emit ;
+
+
+-- -----------------------------------------------------------------------------
+--
+--  Some useful printf style debugging
+--
+-- -----------------------------------------------------------------------------
+
+: {mem}>output? ( addr u -- )
+      do
+        dup:2
+        if
+          ?:b . 1- swap 1+ swap
+      repeat
+      drop:2 drop ;
+
+: {ds?} ( -- )
+    " <  " >output
+    }ds ds{ cell +
+    do
+      dup:2
+      > if dup ? . cell +
+    repeat
+    drop:2
+    " > " >output
+    ;
+
+: loaded-nucleus ( -- ) ." loaded nucleus" ;
+loaded-nucleus

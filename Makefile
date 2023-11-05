@@ -14,7 +14,7 @@ SRC = $(wildcard $(SRC_DIR)/*.S)
 .PHONY: all
 all: $(EXE) # gossamer
 
-$(EXE): $(SRC) nucleus.gossamer
+$(EXE): $(SRC) $(SRC_DIR)/bootstrap.gossamer  $(SRC_DIR)/nucleus.gossamer
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRC) -o $(EXE)
 
 .PHONY: clean
